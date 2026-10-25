@@ -155,7 +155,7 @@ export function calculateSalaryBreakdown(
   // Hourly rate based on standard 8-hour workday (e.g. ₹500 / 8 = ₹62.50/hr)
   const standardHourlyRate = dailyRate / 8;
 
-  // 3. Earnings Calculation (50% Basic, 40% of Basic as HRA, 10% of Basic as DA, Special Allowance balance)
+  // 3. Earnings Calculation
   const fullBasic = fullMonthlyBase * 0.50;
   const fullHra = fullBasic * 0.40;
   const fullDa = fullBasic * 0.10;
@@ -164,7 +164,7 @@ export function calculateSalaryBreakdown(
     : Math.round(fullDa * 100) / 100;
   const fullSpecial = Math.max(0, fullMonthlyBase - (fullBasic + fullHra + dearnessAllowance));
 
-  // If manual Excel earnings are provided, use them; otherwise use standard components
+  // If manual Excel earnings are provided, use them exactly; otherwise use standard components
   const basicPay = attendance.manualBasicPay !== undefined
     ? Math.round(attendance.manualBasicPay * 100) / 100
     : Math.round(fullBasic * 100) / 100;
@@ -177,8 +177,12 @@ export function calculateSalaryBreakdown(
     ? Math.round(attendance.manualSpecialAllowance * 100) / 100
     : Math.round(fullSpecial * 100) / 100;
 
+  const otherAllowance = attendance.manualOtherAllowance !== undefined
+    ? Math.round(attendance.manualOtherAllowance * 100) / 100
+    : 0;
+
   // 4. Overtime & Holiday Pay
-  // Formula: Base Salary (e.g. 15000, 20000) / Total Working Days in Month / 8 working hours * OT Hours
+  // Formula: Base Salary / Total Working Days in Month / 8 working hours * OT Hours
   const workingDaysInMonth = totalMonthDays > 0 ? totalMonthDays : 30;
   const baseSalaryAmount = profile.baseSalary || fullMonthlyBase || 0;
   const otHourlyRate = (baseSalaryAmount / workingDaysInMonth) / 8;
@@ -198,7 +202,7 @@ export function calculateSalaryBreakdown(
   
   const performanceBonus = attendance.manualIncentiveBonus !== undefined
     ? Math.round(attendance.manualIncentiveBonus * 100) / 100
-    : (profile.designation.includes('Lead') || profile.designation.includes('Principal') ? 500 : 0);
+    : 0;
 
   const reimbursements = attendance.manualReimbursements !== undefined
     ? Math.round(attendance.manualReimbursements * 100) / 100
@@ -212,70 +216,78 @@ export function calculateSalaryBreakdown(
     ? Math.round(attendance.manualMedicalAllowance * 100) / 100
     : 0;
 
-  // Gross Earnings = Basic + HRA + Dearness Allowance + Special Allowance + Overtime Pay + Holiday Pay + Bonus + Reimbursements
-  const grossEarnings = Math.round(
-    (basicPay + hra + dearnessAllowance + specialAllowance + conveyanceAllowance + medicalAllowance + overtimePay + holidayWorkPay + performanceBonus + reimbursements) * 100
-  ) / 100;
+  // Gross Earnings = Direct Excel Gross Salary if provided; otherwise sum of components
+  const grossEarnings = attendance.manualGrossSalary !== undefined
+    ? Math.round(attendance.manualGrossSalary * 100) / 100
+    : Math.round(
+        (basicPay + hra + dearnessAllowance + specialAllowance + otherAllowance + conveyanceAllowance + medicalAllowance + overtimePay + holidayWorkPay + performanceBonus + reimbursements) * 100
+      ) / 100;
 
   // 5. Deductions Calculation
-  // Provident Fund (PF) - zero by default unless enabled in settings / manual override
-  let providentFund = 0;
-  if (attendance.manualPf !== undefined) {
-    providentFund = Math.round(attendance.manualPf * 100) / 100;
-  } else if (settings.enablePF && settings.pfPercentage > 0) {
-    providentFund = basicPay * (settings.pfPercentage / 100);
-    if (settings.pfCapLimit > 0 && providentFund > settings.pfCapLimit) {
-      providentFund = settings.pfCapLimit;
-    }
-    providentFund = Math.round(providentFund * 100) / 100;
-  }
-  const employerPF = providentFund;
+  // Loan & Salary Advances from Excel
+  const loanAdvance = attendance.manualLoanAdvance !== undefined
+    ? Math.round(attendance.manualLoanAdvance * 100) / 100
+    : 0;
+
+  // Other Deductions from Excel
+  const otherDeductions = attendance.manualOtherDeductions !== undefined
+    ? Math.round(attendance.manualOtherDeductions * 100) / 100
+    : 0;
+
+  // If Excel specifies total deduction (or if imported from Excel without auto-deductions), strictly honor Excel value
+  const isDirectExcelMode = attendance.manualTotalDeduction !== undefined || attendance.manualGrossSalary !== undefined;
 
   const esi = 0;
   const incomeTaxTDS = 0;
-
-  // Professional Tax (PT) - zero by default unless enabled in settings / manual override
+  let providentFund = 0;
+  let employerPF = 0;
   let professionalTax = 0;
-  if (attendance.manualPt !== undefined) {
-    professionalTax = Math.round(attendance.manualPt * 100) / 100;
-  } else if (settings.enablePT && (settings.ptSlabAmount || 0) > 0) {
-    professionalTax = (settings.ptSlabAmount || 0);
-  }
-
-  // Loss of Pay (LOP Deductions) = Unpaid Leaves / LOP Days * Daily Rate
   let lossOfPayDeduction = 0;
-  if (attendance.manualLopDeduction !== undefined) {
-    lossOfPayDeduction = Math.round(attendance.manualLopDeduction * 100) / 100;
-  } else {
-    lossOfPayDeduction = Math.round((lossOfPayDays * dailyRate) * 100) / 100;
-  }
-
-  // Late Arrival Penalty: 1 late mark = half-day (0.5 day) salary deduction
   let lateDeduction = 0;
-  if (attendance.manualLateDeduction !== undefined) {
-    lateDeduction = Math.round(attendance.manualLateDeduction * 100) / 100;
-  } else if (attendance.lateArrivalsCount && attendance.lateArrivalsCount > 0) {
-    lateDeduction = Math.round((attendance.lateArrivalsCount * 0.5 * dailyRate) * 100) / 100;
+
+  if (!isDirectExcelMode) {
+    if (attendance.manualPf !== undefined) {
+      providentFund = Math.round(attendance.manualPf * 100) / 100;
+    } else if (settings.enablePF && settings.pfPercentage > 0) {
+      providentFund = basicPay * (settings.pfPercentage / 100);
+      if (settings.pfCapLimit > 0 && providentFund > settings.pfCapLimit) {
+        providentFund = settings.pfCapLimit;
+      }
+      providentFund = Math.round(providentFund * 100) / 100;
+    }
+    employerPF = providentFund;
+
+    if (attendance.manualPt !== undefined) {
+      professionalTax = Math.round(attendance.manualPt * 100) / 100;
+    } else if (settings.enablePT && (settings.ptSlabAmount || 0) > 0) {
+      professionalTax = (settings.ptSlabAmount || 0);
+    }
+
+    if (attendance.manualLopDeduction !== undefined) {
+      lossOfPayDeduction = Math.round(attendance.manualLopDeduction * 100) / 100;
+    } else if (lossOfPayDays > 0) {
+      lossOfPayDeduction = Math.round((lossOfPayDays * dailyRate) * 100) / 100;
+    }
+
+    if (attendance.manualLateDeduction !== undefined) {
+      lateDeduction = Math.round(attendance.manualLateDeduction * 100) / 100;
+    } else if (attendance.lateArrivalsCount && attendance.lateArrivalsCount > 0) {
+      lateDeduction = Math.round((attendance.lateArrivalsCount * 0.5 * dailyRate) * 100) / 100;
+    }
   }
 
-  // Loan & Salary Advances
-  let loanAdvance = 0;
-  if (attendance.manualLoanAdvance !== undefined) {
-    loanAdvance = Math.round(attendance.manualLoanAdvance * 100) / 100;
-  }
+  // Total Deductions
+  const totalDeductions = attendance.manualTotalDeduction !== undefined
+    ? Math.round(attendance.manualTotalDeduction * 100) / 100
+    : Math.round(
+        (providentFund + professionalTax + lossOfPayDeduction + lateDeduction + loanAdvance + otherDeductions) * 100
+      ) / 100;
 
-  let otherDeductions = 0;
-  if (attendance.manualOtherDeductions !== undefined) {
-    otherDeductions = Math.round(attendance.manualOtherDeductions * 100) / 100;
-  }
+  // 6. Net Pay = Direct Excel Net Pay if specified; otherwise (Gross Earnings - Total Deductions)
+  const netPay = attendance.manualNetPay !== undefined
+    ? Math.round(attendance.manualNetPay * 100) / 100
+    : Math.max(0, Math.round((grossEarnings - totalDeductions) * 100) / 100);
 
-  // Total Deductions = PF + PT + LOP Deductions + Late Penalty + Loan Advance + Other Deductions
-  const totalDeductions = Math.round(
-    (providentFund + professionalTax + lossOfPayDeduction + lateDeduction + loanAdvance + otherDeductions) * 100
-  ) / 100;
-
-  // 6. Net Pay = Total Gross Earnings - Total Deductions
-  const netPay = Math.max(0, Math.round((grossEarnings - totalDeductions) * 100) / 100);
   const netPayInWords = numberToWords(netPay, settings.currency === 'USD' ? 'Dollars' : 'Rupees', 'Cents');
 
   return {
@@ -291,9 +303,10 @@ export function calculateSalaryBreakdown(
     basicPay,
     hra,
     dearnessAllowance,
+    specialAllowance,
+    otherAllowance,
     conveyanceAllowance,
     medicalAllowance,
-    specialAllowance,
     overtimePay,
     holidayWorkPay,
     performanceBonus,

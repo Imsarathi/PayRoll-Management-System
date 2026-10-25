@@ -43,17 +43,21 @@ import { HistoricalPayslipModal } from './components/HistoricalPayslipModal';
 export default function App() {
   // State
   const [currentRole, setCurrentRole] = useState<UserRole>('super_admin');
-  const [selectedMonth, setSelectedMonth] = useState('2026-08');
+  const [selectedMonth, setSelectedMonth] = useState('2026-06');
   const [companySettings, setCompanySettings] = useState<CompanySettings>(() => {
     const saved = localStorage.getItem('paymaster_settings');
-    return saved ? JSON.parse(saved) : DEFAULT_COMPANY_SETTINGS;
+    const parsed = saved ? JSON.parse(saved) : DEFAULT_COMPANY_SETTINGS;
+    return { ...DEFAULT_COMPANY_SETTINGS, ...parsed, currency: 'INR', currencySymbol: '₹' };
   });
   
   const [employees, setEmployees] = useState<EmployeeProfile[]>(() => {
     const saved = localStorage.getItem('paymaster_employees');
     if (saved !== null) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.some((p: any) => p.empId === '072023' || p.name === 'Akila R')) {
+          return parsed;
+        }
       } catch (e) {
         return INITIAL_EMPLOYEES;
       }
@@ -65,7 +69,10 @@ export default function App() {
     const saved = localStorage.getItem('paymaster_attendance');
     if (saved !== null) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.some((a: any) => a.empId === '072023')) {
+          return parsed;
+        }
       } catch (e) {
         return INITIAL_ATTENDANCE;
       }
@@ -109,6 +116,7 @@ export default function App() {
   const [historicalFilterEmpId, setHistoricalFilterEmpId] = useState<string | undefined>(undefined);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [settingsTab, setSettingsTab] = useState<'profile' | 'signature' | 'rules' | 'whatsapp'>('profile');
   const [isArchitectureOpen, setIsArchitectureOpen] = useState(false);
   const [isAuditTrailOpen, setIsAuditTrailOpen] = useState(false);
   const [isBankTransferOpen, setIsBankTransferOpen] = useState(false);
@@ -118,10 +126,27 @@ export default function App() {
 
   // Manual Overrides state map (empId -> partial overrides)
   const [salaryOverrides, setSalaryOverrides] = useState<Record<string, Partial<SalaryBreakdown>>>({});
+  const [archiveNotification, setArchiveNotification] = useState<string | null>(null);
+
+  // Helper to format any YYYY-MM to readable month label (e.g., 'June 2026', 'July 2026', 'September 2026')
+  const formatMonthLabel = (monthStr: string): string => {
+    if (!monthStr) return 'Active Cycle';
+    const parts = monthStr.split('-');
+    if (parts.length === 2) {
+      const year = parts[0];
+      const monthNum = parseInt(parts[1], 10);
+      const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+      if (monthNum >= 1 && monthNum <= 12) {
+        return `${months[monthNum - 1]} ${year}`;
+      }
+    }
+    return monthStr;
+  };
+
+  const periodLabel = formatMonthLabel(selectedMonth);
 
   // Recalculate salaries whenever employees, attendance, settings, or month change
   const computedSalaries: SalaryBreakdown[] = useMemo(() => {
-    const periodLabel = selectedMonth === '2026-08' ? 'August 2026' : selectedMonth === '2026-07' ? 'July 2026' : `${selectedMonth}`;
     const totalMonthDays = companySettings.payCycleDayCount || 30;
     
     return employees.map((emp) => {
@@ -165,7 +190,7 @@ export default function App() {
         status: payrollStatus,
       };
     });
-  }, [employees, attendanceRecords, companySettings, selectedMonth, salaryOverrides, payrollStatus]);
+  }, [employees, attendanceRecords, companySettings, selectedMonth, salaryOverrides, payrollStatus, periodLabel]);
 
   // Handlers
   const handleSaveSettings = (newSettings: CompanySettings) => {
@@ -173,7 +198,39 @@ export default function App() {
     localStorage.setItem('paymaster_settings', JSON.stringify(newSettings));
   };
 
-  const handleApplyAttendance = (newRecords: AttendanceRecord[]) => {
+  // Archive current active payroll cycle into historical past payslips
+  const handleArchiveCurrentMonth = () => {
+    if (!computedSalaries || computedSalaries.length === 0) return;
+    const currentPeriod = formatMonthLabel(selectedMonth);
+    
+    setHistoricalSalaries(prev => {
+      const filtered = prev.filter(p => p.month !== selectedMonth);
+      const updated = [...computedSalaries, ...filtered];
+      localStorage.setItem('paymaster_historical_salaries', JSON.stringify(updated));
+      return updated;
+    });
+
+    const newLog: AuditLog = {
+      id: `audit-${Date.now()}-archive`,
+      empId: 'CYCLE-ARCHIVE',
+      employeeName: `All Staff (${computedSalaries.length})`,
+      fieldChanged: 'Month Payroll Archived',
+      previousValue: 'Active Cycle',
+      newValue: `Archived ${computedSalaries.length} payslips for ${currentPeriod} to Past Payslips history`,
+      changedBy: currentRole === 'super_admin' ? 'Super Admin' : 'HR Payroll Manager',
+      timestamp: new Date().toISOString(),
+      reason: `User archived payroll run for ${currentPeriod}`,
+    };
+    setAuditLogs(prev => [newLog, ...prev]);
+    setArchiveNotification(`Successfully saved ${computedSalaries.length} payslips for ${currentPeriod} to Past Payslips archive!`);
+    setTimeout(() => setArchiveNotification(null), 5000);
+  };
+
+  const handleApplyAttendance = (newRecords: AttendanceRecord[], targetMonth?: string) => {
+    if (targetMonth && targetMonth !== selectedMonth) {
+      setSelectedMonth(targetMonth);
+    }
+
     // 1. Update attendance records
     setAttendanceRecords(newRecords);
     localStorage.setItem('paymaster_attendance', JSON.stringify(newRecords));
@@ -480,7 +537,6 @@ export default function App() {
     setAuditLogs(prev => [newLog, ...prev]);
   };
 
-  const periodLabel = computedSalaries[0]?.periodLabel || 'August 2026';
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-900 flex flex-col font-sans selection:bg-blue-100">
@@ -492,7 +548,10 @@ export default function App() {
         selectedMonth={selectedMonth}
         setSelectedMonth={setSelectedMonth}
         companySettings={companySettings}
-        onOpenSettings={() => setIsSettingsOpen(true)}
+        onOpenSettings={() => {
+          setSettingsTab('profile');
+          setIsSettingsOpen(true);
+        }}
         onOpenArchitecture={() => setIsArchitectureOpen(true)}
         onOpenUpload={() => setIsUploadOpen(true)}
         onOpenAuditTrail={() => setIsAuditTrailOpen(true)}
@@ -523,6 +582,14 @@ export default function App() {
         ) : (
           /* Administrative & HR View */
           <>
+
+            {archiveNotification && (
+              <div className="bg-indigo-600 text-white px-4 py-2.5 rounded-xl shadow-md flex items-center justify-between text-xs font-semibold animate-in fade-in slide-in-from-top-2 duration-200">
+                <span>{archiveNotification}</span>
+                <button onClick={() => setArchiveNotification(null)} className="text-indigo-200 hover:text-white ml-2 cursor-pointer">✕</button>
+              </div>
+            )}
+
             <DashboardOverview
               salaries={computedSalaries}
               settings={companySettings}
@@ -535,6 +602,8 @@ export default function App() {
               onExportDeptSummaryExcel={() => exportDepartmentSummaryExcel(computedSalaries, companySettings, periodLabel)}
               onBatchDownloadPDF={() => downloadBatchPDFs(computedSalaries, companySettings)}
               currentRole={currentRole}
+              onArchiveCurrentMonth={handleArchiveCurrentMonth}
+              historicalCount={historicalSalaries.length}
             />
 
             <PayrollGrid
@@ -693,6 +762,8 @@ export default function App() {
         onClose={() => setIsUploadOpen(false)}
         onApplyAttendance={handleApplyAttendance}
         totalMonthDays={companySettings.payCycleDayCount || 30}
+        currentSelectedMonth={selectedMonth}
+        onArchiveCurrentMonth={handleArchiveCurrentMonth}
       />
 
       {/* 3. Company & Payroll Settings */}
@@ -701,6 +772,7 @@ export default function App() {
         settings={companySettings}
         activeMonth={selectedMonth}
         periodLabel={periodLabel}
+        initialTab={settingsTab}
         onClose={() => setIsSettingsOpen(false)}
         onSaveSettings={handleSaveSettings}
       />
@@ -727,6 +799,10 @@ export default function App() {
         onClose={() => setIsEmailModalOpen(false)}
         salaries={computedSalaries}
         settings={companySettings}
+        onOpenSettings={() => {
+          setSettingsTab('whatsapp');
+          setIsSettingsOpen(true);
+        }}
       />
 
       {/* 8. Complete System Architecture & Tech Specs Modal */}

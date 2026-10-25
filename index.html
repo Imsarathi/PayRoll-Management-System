@@ -4,6 +4,22 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>iMatrix Technology Solutions — Payroll Management System</title>
+    <script>
+      // Suppress benign WebSocket / HMR connection failure popups in sandboxed preview iframe
+      window.addEventListener('unhandledrejection', function (event) {
+        var reason = event.reason;
+        var msg = (reason && (reason.message || String(reason))) || '';
+        if (msg.includes('WebSocket') || msg.includes('websocket')) {
+          event.preventDefault();
+        }
+      });
+      window.addEventListener('error', function (event) {
+        var msg = (event && event.message) || '';
+        if (msg.includes('WebSocket') || msg.includes('websocket')) {
+          event.preventDefault();
+        }
+      });
+    </script>
     <link rel="icon" type="image/svg+xml" href="/imatrix-logo.svg" />
     <meta name="description" content="iMatrix Technology Solutions - Enterprise Payroll Management System with attendance processing, salary calculations, and tax compliance." />
     <meta property="og:title" content="iMatrix Technology Solutions — Payroll Management System" />

@@ -10,7 +10,8 @@ import {
   Download,
   RotateCcw,
   Clock,
-  MessageCircle
+  MessageCircle,
+  History
 } from 'lucide-react';
 import { SalaryBreakdown, CompanySettings, PayrollStatus, UserRole } from '../types/payroll';
 
@@ -23,9 +24,11 @@ interface DashboardOverviewProps {
   onOpenBankTransferModal: () => void;
   onOpenEmailModal: () => void;
   onExportConsolidatedExcel: () => void;
-  onExportDeptSummaryExcel: () => void;
+  onExportDeptSummaryExcel?: () => void;
   onBatchDownloadPDF: () => void;
   currentRole: UserRole;
+  onArchiveCurrentMonth?: () => void;
+  historicalCount?: number;
 }
 
 export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
@@ -39,6 +42,8 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   onExportConsolidatedExcel,
   onBatchDownloadPDF,
   currentRole,
+  onArchiveCurrentMonth,
+  historicalCount,
 }) => {
   const sym = settings.currencySymbol || '$';
 
@@ -85,7 +90,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
               className="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition cursor-pointer"
             >
               <FileUp className="w-4 h-4" />
-              <span>Ingest Attendance Excel</span>
+              <span>Upload New Month Excel</span>
             </button>
 
             {/* Step 2: One-Click Approve / Reopen */}
@@ -112,6 +117,24 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
                   <span>Reopen / Edit</span>
                 </button>
               )
+            )}
+
+            {/* Archive to History Button */}
+            {onArchiveCurrentMonth && (
+              <button
+                id="btn-archive-current-month"
+                onClick={onArchiveCurrentMonth}
+                className="inline-flex items-center space-x-1.5 px-3 py-2 rounded-md bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-semibold shadow-xs transition cursor-pointer"
+                title="Save current month's payslips into Past Payslips archive"
+              >
+                <History className="w-3.5 h-3.5 text-indigo-600" />
+                <span>Archive to Past Payslips</span>
+                {historicalCount !== undefined && historicalCount > 0 && (
+                  <span className="ml-1 px-1.5 py-0.2 rounded-full bg-indigo-200 text-indigo-800 text-[10px] font-bold">
+                    {historicalCount}
+                  </span>
+                )}
+              </button>
             )}
           </div>
         )}

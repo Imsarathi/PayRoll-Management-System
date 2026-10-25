@@ -189,16 +189,7 @@ export const EmployeePortalView: React.FC<EmployeePortalViewProps> = ({
             <p className="text-xs text-slate-300 mt-2 flex items-center space-x-1.5">
               <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
               <span>
-                Payment {activeSalary.status === 'disbursed' ? 'Disbursed' : 'Advice'} via <strong>
-                  {activeSalary.paymentMethod === 'cash' 
-                    ? 'Physical Cash Handover'
-                    : activeSalary.paymentMethod === 'upi'
-                    ? 'Instant UPI Transfer'
-                    : activeSalary.paymentMethod === 'cheque'
-                    ? 'Corporate Cheque'
-                    : `Direct Deposit to ${profile.bankName || 'Bank'} (${profile.accountNumber || 'Primary Account'})`
-                  }
-                </strong>
+                Verified pay advice generated for {profile.name} ({profile.empId})
               </span>
             </p>
           </div>
@@ -324,36 +315,19 @@ export const EmployeePortalView: React.FC<EmployeePortalViewProps> = ({
           </div>
         </div>
 
-        {/* Card 3: Attendance & Net Payout Details */}
+        {/* Card 3: Attendance Details */}
         <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between text-xs text-slate-500 font-medium pb-2 border-b border-slate-100">
-              <span className="font-bold text-slate-800 uppercase tracking-wider">Attendance & Payout</span>
-              <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 font-bold text-[10px]">
-                {activeSalary.payableDays ?? 0} / {activeSalary.totalDays ?? 30} Days Payable
-              </span>
+              <span className="font-bold text-slate-800 uppercase tracking-wider">Attendance Details</span>
             </div>
 
             <div className="space-y-2 mt-3 text-xs">
               <div className="flex justify-between py-1 border-b border-slate-50">
-                <span className="text-slate-600">Days Present</span>
-                <span className="font-bold text-slate-800">{att.daysPresent || 0} days</span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-slate-50">
-                <span className="text-slate-600">Paid Leaves</span>
-                <span className="font-bold text-slate-800">{att.paidLeaves || 0} days</span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-slate-50">
-                <span className="text-slate-600">O.T. Hrs</span>
-                <span className="font-bold text-purple-700">+{att.overtimeHours || 0} hrs</span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-slate-50">
-                <span className="text-slate-600">Loss of Pay (Unpaid)</span>
-                <span className="font-bold text-rose-600">{activeSalary.lossOfPayDays || 0} days</span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-slate-50">
-                <span className="text-slate-600">Late Arrivals</span>
-                <span className="font-semibold text-slate-700">{att.lateArrivalsCount || 0} times</span>
+                <span className="text-slate-600 font-medium">Days Present</span>
+                <span className="font-bold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded border border-emerald-200">
+                  {att.daysPresent || 0} days
+                </span>
               </div>
             </div>
           </div>
@@ -406,7 +380,6 @@ export const EmployeePortalView: React.FC<EmployeePortalViewProps> = ({
                 <th className="py-3 px-4">Gross Earnings</th>
                 <th className="py-3 px-4">Deductions</th>
                 <th className="py-3 px-4">Net Salary</th>
-                <th className="py-3 px-4">Payment Method</th>
                 <th className="py-3 px-4 text-center">Status</th>
                 <th className="py-3 px-4 text-right">Actions</th>
               </tr>
@@ -443,11 +416,6 @@ export const EmployeePortalView: React.FC<EmployeePortalViewProps> = ({
                     </td>
                     <td className="py-3 px-4 font-bold text-emerald-700 bg-emerald-50/40">
                       {sym} {(stmt.netPay ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                    </td>
-                    <td className="py-3 px-4 text-slate-600">
-                      <span className="capitalize">
-                        {stmt.paymentMethod === 'cash' ? '💵 Cash' : stmt.paymentMethod === 'upi' ? '⚡ UPI' : stmt.paymentMethod === 'cheque' ? '📝 Cheque' : '🏦 Bank Transfer'}
-                      </span>
                     </td>
                     <td className="py-3 px-4 text-center">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">

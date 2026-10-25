@@ -10,37 +10,51 @@ export interface ParseResult {
 }
 
 export const DEFAULT_COLUMN_KEYWORDS: Record<keyof ColumnMapping, string[]> = {
-  empId: ['empid', 'emp_id', 'employeeid', 'employee_id', 'staff_id', 'id', 'empcode', 'emp_code', 'code'],
-  name: ['name', 'employeename', 'employee_name', 'staff_name', 'fullname', 'full_name'],
-  department: ['department', 'dept', 'division', 'team', 'business_unit', 'unit'],
-  daysPresent: ['present', 'dayspresent', 'days_present', 'present_days', 'attended_days', 'working_days_present', 'actual_present'],
-  daysAbsent: ['absent', 'daysabsent', 'days_absent', 'absent_days', 'absences'],
+  empId: [
+    'empid', 'emp_id', 'employeeid', 'employee_id', 'staff_id', 'id', 'empcode', 'emp_code', 'code',
+    'empno', 'emp_no', 'employeeno', 'employee_no', 'employeenumber', 'employee_number',
+    'staffno', 'staff_no', 'staffcode', 'staff_code',
+    'srno', 'sr_no', 'sno', 's_no', 'slno', 'sl_no', 'serialno', 'serial_no',
+    'tokenno', 'token_no', 'badgeno', 'badge_no', 'payrollid', 'payroll_id',
+    'personnelno', 'fileno', 'emp', 'no'
+  ],
+  name: [
+    'name', 'employeename', 'employee_name', 'staff_name', 'fullname', 'full_name',
+    'empname', 'emp_name', 'personname', 'person_name', 'staffname', 'worker_name'
+  ],
+  department: ['department', 'dept', 'division', 'team', 'business_unit', 'unit', 'designation', 'role'],
+  daysPresent: ['present', 'dayspresent', 'days_present', 'present_days', 'attended_days', 'working_days_present', 'actual_present', 'workingdays', 'p'],
+  daysAbsent: ['absent', 'daysabsent', 'days_absent', 'absent_days', 'absences', 'a'],
   halfDays: ['halfday', 'halfdays', 'half_days', 'half_day', 'hd', 'half_day_count'],
   overtimeHours: ['overtime', 'ot', 'othours', 'ot_hours', 'overtime_hours', 'ot_hrs', 'extra_hours'],
-  paidLeaves: ['paidleave', 'paidleaves', 'paid_leaves', 'paid_leave', 'cl', 'sl', 'el', 'leaves_taken', 'approved_leaves'],
-  unpaidLeaves: ['unpaidleave', 'unpaidleaves', 'unpaid_leaves', 'unpaid_leave', 'lwp', 'lop_days', 'unpaid_days', 'unpaidleaveslop'],
+  paidLeaves: ['paidleave', 'paidleaves', 'paid_leaves', 'paid_leave', 'cl', 'sl', 'el', 'leaves_taken', 'approved_leaves', 'pl'],
+  unpaidLeaves: ['unpaidleave', 'unpaidleaves', 'unpaid_leaves', 'unpaid_leave', 'lwp', 'lop_days', 'unpaid_days', 'unpaidleaveslop', 'lop'],
   holidaysWorked: ['holidaysworked', 'holidays_worked', 'holiday_work', 'ph_worked', 'holiday_days_worked'],
   lateArrivals: ['latemarks', 'late_marks', 'late', 'latearrivals', 'late_arrivals', 'lates', 'late_count'],
-  baseSalary: ['basesalary', 'basic_salary', 'base_salary', 'monthly_salary', 'ctc', 'gross_salary'],
+  baseSalary: ['salary', 'basesalary', 'basic_salary', 'base_salary', 'monthly_salary', 'ctc', 'gross_salary'],
 
   // Custom Earnings
-  basicPay: ['basicsalary', 'basic_salary', 'basic', 'basicpay', 'basic_pay', 'basicamount', 'basic_amt'],
-  hra: ['houserentallowancehra', 'houserentallowance', 'house_rent_allowance', 'hra', 'house_rent', 'rent_allowance'],
+  basicPay: ['basicpay', 'basic_pay', 'basicsalary', 'basic_salary', 'basic', 'basicamount', 'basic_amt'],
+  hra: ['hra', 'h.r.a.', 'h.r.a', 'houserentallowancehra', 'houserentallowance', 'house_rent_allowance', 'rent_allowance'],
   conveyance: ['conveyanceallowance', 'conveyance_allowance', 'travel_allowance', 'conveyance', 'ca', 'ta'],
-  da: ['dearnessallowanceda', 'dearnessallowance', 'dearness_allowance', 'dearness', 'da'],
-  specialAllowance: ['specialallowancesa', 'specialallowance', 'special_allowance', 'spl_allowance', 'special', 'sa'],
+  da: ['da', 'd.a.', 'd.a', 'dearnessallowanceda', 'dearnessallowance', 'dearness_allowance', 'dearness'],
+  specialAllowance: ['specialallowance', 'special_allowance', 'specialallowancesa', 'spl_allowance', 'special', 'sa'],
+  otherAllowance: ['otherallowance', 'other_allowance', 'otherallowances', 'allowance_other', 'misc_allowance', 'other'],
   medicalAllowance: ['medicalallowance', 'medical_allowance', 'med_allowance', 'medical'],
-  overtimePay: ['overtimepayot', 'overtimepay', 'overtime_pay', 'otpay', 'ot_pay', 'ot_amount', 'ot_amt'],
+  overtimePay: ['ot', 'o.t', 'o.t.', 'overtimepayot', 'overtimepay', 'overtime_pay', 'otpay', 'ot_pay', 'ot_amount', 'ot_amt'],
   incentiveBonus: ['incentivebonus', 'incentive_bonus', 'incentive', 'bonus', 'incentiveandbonus', 'incentivebonusamount', 'performancebonus', 'performance_bonus', 'incentives', 'variable_pay', 'incentive_pay'],
-  reimbursements: ['reimbursement', 'reimbursements', 'claims', 'other_additions', 'allowance_other'],
+  reimbursements: ['reimbursement', 'reimbursements', 'claims', 'other_additions'],
+  grossSalary: ['grosssalary', 'gross_salary', 'gross', 'gross_pay', 'grosspay'],
 
   // Custom Deductions
   providentFund: ['providentfundpf', 'providentfund', 'provident_fund', 'epf', 'employee_pf', 'pf_deduction', 'pf'],
   professionalTax: ['professionaltaxpt', 'professionaltax', 'professional_tax', 'prof_tax', 'pt_deduction', 'pt'],
   lopDeduction: ['lossofpaylopdeductions', 'lossofpaydeductions', 'lossofpaydeduction', 'loss_of_pay_deductions', 'lossofpay', 'loss_of_pay', 'lopdeduction', 'lop_deduction', 'unpaid_deduction'],
   lateDeduction: ['latearrivalpenalty', 'late_arrival_penalty', 'latepenalty', 'late_penalty', 'latededuction', 'late_deduction', 'late_fine'],
-  loanAdvance: ['loanandsalaryadvances', 'loanandadvance', 'loansalaryadvances', 'loan_salary_advances', 'loansalaryadvance', 'salaryadvance', 'salary_advance', 'loan_advance', 'loan_deduction', 'advance_recovery', 'loan', 'advance', 'loans', 'advances', 'loanadvances'],
-  otherDeductions: ['otherdeduction', 'other_deductions', 'other_deduction', 'misc_deductions', 'deductions_other'],
+  loanAdvance: ['loan/advance', 'loanadvance', 'loan_advance', 'loanandsalaryadvances', 'loansalaryadvance', 'salaryadvance', 'salary_advance', 'loan', 'advance'],
+  otherDeductions: ['otherdeduction', 'other_deduction', 'otherdeductions', 'other_deductions', 'misc_deductions'],
+  totalDeduction: ['totaldeduction', 'totaldeductions', 'total_deduction', 'total_deductions', 'tot_ded', 'deductions_total'],
+  netPay: ['netpay', 'net_pay', 'net_salary', 'netsalary', 'take_home'],
 };
 
 /**
@@ -70,16 +84,20 @@ export function autoDetectMapping(headers: string[]): ColumnMapping {
     conveyance: '',
     da: '',
     specialAllowance: '',
+    otherAllowance: '',
     medicalAllowance: '',
     overtimePay: '',
     incentiveBonus: '',
     reimbursements: '',
+    grossSalary: '',
     providentFund: '',
     professionalTax: '',
     lopDeduction: '',
     lateDeduction: '',
     loanAdvance: '',
     otherDeductions: '',
+    totalDeduction: '',
+    netPay: '',
   };
 
   const fieldKeys = Object.keys(DEFAULT_COLUMN_KEYWORDS) as (keyof ColumnMapping)[];
@@ -103,7 +121,6 @@ export function autoDetectMapping(headers: string[]): ColumnMapping {
     const keywords = DEFAULT_COLUMN_KEYWORDS[fieldKey];
     for (const kw of keywords) {
       const cleanKw = kw.replace(/[^a-z0-9]/g, '');
-      // Avoid short 2-character keywords (like 'da', 'pt', 'pf', 'sa', 'ta') matching arbitrarily inside long unrelated column headers
       if (cleanKw.length < 3) continue;
       const partialMatch = normalizedHeaders.find(h => h.clean.includes(cleanKw));
       if (partialMatch) {
@@ -113,11 +130,32 @@ export function autoDetectMapping(headers: string[]): ColumnMapping {
     }
   });
 
+  // Pass 3: Smart fallbacks if empId or name were not matched
+  if (!mapping.empId && headers.length > 0) {
+    const candidate = headers.find(h => {
+      const c = h.toLowerCase().replace(/[^a-z0-9]/g, '');
+      return c.includes('id') || c.includes('code') || c.includes('emp') || c.startsWith('sr') || c.startsWith('no');
+    });
+    mapping.empId = candidate || headers[0];
+  }
+
+  if (!mapping.name && headers.length > 1) {
+    const candidate = headers.find(h => {
+      const c = h.toLowerCase().replace(/[^a-z0-9]/g, '');
+      return c.includes('name') || c.includes('staff') || c.includes('emp');
+    });
+    if (candidate && candidate !== mapping.empId) {
+      mapping.name = candidate;
+    } else if (headers[1] && headers[1] !== mapping.empId) {
+      mapping.name = headers[1];
+    }
+  }
+
   return mapping;
 }
 
 /**
- * Parses raw Excel / CSV file buffer or ArrayBuffer
+ * Parses raw Excel / CSV file buffer or ArrayBuffer with multi-row header scanning
  */
 export async function parseAttendanceExcel(file: File): Promise<ParseResult> {
   const buffer = await file.arrayBuffer();
@@ -125,19 +163,92 @@ export async function parseAttendanceExcel(file: File): Promise<ParseResult> {
   const firstSheetName = workbook.SheetNames[0];
   const worksheet = workbook.Sheets[firstSheetName];
 
-  // Parse as JSON with headers
-  const rawRows: Record<string, any>[] = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+  // First convert to 2D array to identify real header row if sheet has title or blank lines
+  const raw2D: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
 
-  if (rawRows.length === 0) {
+  if (raw2D.length === 0) {
     throw new Error('The uploaded file is empty. Please upload an Excel sheet containing attendance data.');
   }
 
-  // Extract all unique headers across rows
-  const headerSet = new Set<string>();
-  rawRows.forEach(row => {
-    Object.keys(row).forEach(k => headerSet.add(k));
+  const commonKeywords = [
+    'emp', 'id', 'name', 'salary', 'basic', 'present', 'absent', 'gross', 'net',
+    'dept', 'leave', 'ot', 'code', 'designation', 'sr', 'sno', 'hra', 'pf', 'pt', 'lop', 'pay'
+  ];
+
+  let bestHeaderRowIndex = 0;
+  let bestScore = -1;
+
+  for (let r = 0; r < Math.min(raw2D.length, 12); r++) {
+    const row = raw2D[r];
+    if (!Array.isArray(row) || row.length === 0) continue;
+
+    let rowScore = 0;
+    let nonEmptyCount = 0;
+
+    row.forEach(cell => {
+      const str = String(cell || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (str) {
+        nonEmptyCount++;
+        if (commonKeywords.some(kw => str.includes(kw))) {
+          rowScore += 3;
+        }
+      }
+    });
+
+    if (nonEmptyCount >= 2 && rowScore > bestScore) {
+      bestScore = rowScore;
+      bestHeaderRowIndex = r;
+    }
+  }
+
+  const rawHeaderRow = raw2D[bestHeaderRowIndex] || [];
+  const headers: string[] = [];
+  const usedHeaders = new Set<string>();
+
+  rawHeaderRow.forEach((h: any, colIdx: number) => {
+    let name = String(h || '').trim();
+    if (!name) {
+      name = `Column_${colIdx + 1}`;
+    }
+    let uniqueName = name;
+    let counter = 1;
+    while (usedHeaders.has(uniqueName)) {
+      uniqueName = `${name}_${counter++}`;
+    }
+    usedHeaders.add(uniqueName);
+    headers.push(uniqueName);
   });
-  const headers = Array.from(headerSet);
+
+  const dataRows = raw2D.slice(bestHeaderRowIndex + 1);
+  const rawRows: Record<string, any>[] = [];
+
+  dataRows.forEach(rowArr => {
+    if (!Array.isArray(rowArr)) return;
+    const hasValue = rowArr.some(c => c !== null && c !== undefined && String(c).trim() !== '');
+    if (!hasValue) return;
+
+    const rowObj: Record<string, any> = {};
+    headers.forEach((hdr, idx) => {
+      rowObj[hdr] = rowArr[idx] !== undefined ? rowArr[idx] : '';
+    });
+    rawRows.push(rowObj);
+  });
+
+  // Fallback to standard sheet_to_json if 2D parsing yielded 0 rows
+  if (rawRows.length === 0) {
+    const fallbackRows: Record<string, any>[] = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+    if (fallbackRows.length > 0) {
+      const headerSet = new Set<string>();
+      fallbackRows.forEach(r => Object.keys(r).forEach(k => headerSet.add(k)));
+      headers.length = 0;
+      headers.push(...Array.from(headerSet));
+      rawRows.push(...fallbackRows);
+    }
+  }
+
+  if (rawRows.length === 0) {
+    throw new Error('No data rows found in the sheet. Please check the uploaded spreadsheet.');
+  }
 
   const detectedMapping = autoDetectMapping(headers);
   const { records, validationErrors } = mapRowsToAttendance(rawRows, detectedMapping);
@@ -164,18 +275,29 @@ export function mapRowsToAttendance(
 
   rawRows.forEach((row, index) => {
     const rowNum = index + 2; // 1-indexed Excel row after header
-    const rawEmpId = mapping.empId ? String(row[mapping.empId] || '').trim() : '';
+    
+    // Check if row is completely blank
+    const rowValues = Object.values(row).map(v => String(v ?? '').trim()).filter(Boolean);
+    if (rowValues.length === 0) return;
+
+    // Filter out total/summary rows at bottom of spreadsheets
+    const firstFew = rowValues.slice(0, 3).join(' ').toLowerCase();
+    if (firstFew.includes('total') || firstFew.includes('grand total') || firstFew.includes('summary')) {
+      return;
+    }
+
+    let rawEmpId = mapping.empId ? String(row[mapping.empId] || '').trim() : '';
     const rawName = mapping.name ? String(row[mapping.name] || '').trim() : '';
     const rawDept = mapping.department ? String(row[mapping.department] || '').trim() : '';
 
+    // Smart fallback if empId is missing in row: derive from name or row sequence
     if (!rawEmpId) {
-      validationErrors.push({
-        row: rowNum,
-        field: 'Employee ID',
-        message: 'Missing Employee ID in row. Row skipped or requires mapping.',
-        severity: 'error',
-      });
-      return;
+      if (rawName) {
+        const cleanNamePart = rawName.replace(/[^a-zA-Z0-9]/g, '').slice(0, 6).toUpperCase();
+        rawEmpId = `EMP-${cleanNamePart || String(index + 1).padStart(3, '0')}`;
+      } else {
+        rawEmpId = `EMP-${String(index + 1).padStart(3, '0')}`;
+      }
     }
 
     const parseNum = (val: any, defaultVal = 0): number => {
@@ -196,22 +318,26 @@ export function mapRowsToAttendance(
 
     // Parse manual earnings if present
     const manualBasicPay = mapping.basicPay && row[mapping.basicPay] !== undefined ? parseNum(row[mapping.basicPay], -1) : (row['Basic Salary'] !== undefined || row['Basic Pay'] !== undefined || row['Basic'] !== undefined ? parseNum(row['Basic Salary'] ?? row['Basic Pay'] ?? row['Basic'], -1) : -1);
-    const manualHra = mapping.hra && row[mapping.hra] !== undefined ? parseNum(row[mapping.hra], -1) : (row['House Rent Allowance (HRA)'] !== undefined || row['House Rent Allowance'] !== undefined || row['HRA'] !== undefined ? parseNum(row['House Rent Allowance (HRA)'] ?? row['House Rent Allowance'] ?? row['HRA'], -1) : -1);
+    const manualHra = mapping.hra && row[mapping.hra] !== undefined ? parseNum(row[mapping.hra], -1) : (row['House Rent Allowance (HRA)'] !== undefined || row['House Rent Allowance'] !== undefined || row['HRA'] !== undefined || row['H. R. A.'] !== undefined || row['H.R.A.'] !== undefined ? parseNum(row['House Rent Allowance (HRA)'] ?? row['House Rent Allowance'] ?? row['HRA'] ?? row['H. R. A.'] ?? row['H.R.A.'], -1) : -1);
     const manualConveyance = mapping.conveyance && row[mapping.conveyance] !== undefined ? parseNum(row[mapping.conveyance], -1) : (row['CA'] !== undefined || row['Conveyance'] !== undefined ? parseNum(row['CA'] ?? row['Conveyance'], -1) : -1);
-    const manualDa = mapping.da && row[mapping.da] !== undefined ? parseNum(row[mapping.da], -1) : (row['Dearness Allowance'] !== undefined || row['DA'] !== undefined || row['Dearness'] !== undefined ? parseNum(row['Dearness Allowance'] ?? row['DA'] ?? row['Dearness'], -1) : -1);
+    const manualDa = mapping.da && row[mapping.da] !== undefined ? parseNum(row[mapping.da], -1) : (row['Dearness Allowance'] !== undefined || row['DA'] !== undefined || row['Dearness'] !== undefined || row['D. A.'] !== undefined || row['D.A.'] !== undefined ? parseNum(row['Dearness Allowance'] ?? row['DA'] ?? row['Dearness'] ?? row['D. A.'] ?? row['D.A.'], -1) : -1);
     const manualSpecialAllowance = mapping.specialAllowance && row[mapping.specialAllowance] !== undefined ? parseNum(row[mapping.specialAllowance], -1) : (row['Special Allowance'] !== undefined || row['SA'] !== undefined ? parseNum(row['Special Allowance'] ?? row['SA'], -1) : -1);
+    const manualOtherAllowance = mapping.otherAllowance && row[mapping.otherAllowance] !== undefined ? parseNum(row[mapping.otherAllowance], -1) : (row['Other Allowance'] !== undefined || row['Other Allowances'] !== undefined ? parseNum(row['Other Allowance'] ?? row['Other Allowances'], -1) : -1);
     const manualMedicalAllowance = mapping.medicalAllowance && row[mapping.medicalAllowance] !== undefined ? parseNum(row[mapping.medicalAllowance], -1) : (row['Medical'] !== undefined || row['Medical Allowance'] !== undefined ? parseNum(row['Medical'] ?? row['Medical Allowance'], -1) : -1);
-    const manualOvertimePay = mapping.overtimePay && row[mapping.overtimePay] !== undefined ? parseNum(row[mapping.overtimePay], -1) : (row['Overtime Pay (O.T.)'] !== undefined || row['Overtime Pay'] !== undefined || row['OT Pay'] !== undefined ? parseNum(row['Overtime Pay (O.T.)'] ?? row['Overtime Pay'] ?? row['OT Pay'], -1) : -1);
+    const manualOvertimePay = mapping.overtimePay && row[mapping.overtimePay] !== undefined ? parseNum(row[mapping.overtimePay], -1) : (row['Overtime Pay (O.T.)'] !== undefined || row['Overtime Pay'] !== undefined || row['OT Pay'] !== undefined || row['O.T'] !== undefined || row['O.T.'] !== undefined || row['OT'] !== undefined ? parseNum(row['Overtime Pay (O.T.)'] ?? row['Overtime Pay'] ?? row['OT Pay'] ?? row['O.T'] ?? row['O.T.'] ?? row['OT'], -1) : -1);
     const manualIncentiveBonus = mapping.incentiveBonus && row[mapping.incentiveBonus] !== undefined ? parseNum(row[mapping.incentiveBonus], -1) : (row['Incentive & Bonus'] !== undefined || row['Incentive'] !== undefined || row['Bonus'] !== undefined || row['Performance Bonus'] !== undefined ? parseNum(row['Incentive & Bonus'] ?? row['Incentive'] ?? row['Bonus'] ?? row['Performance Bonus'], -1) : -1);
     const manualReimbursements = mapping.reimbursements && row[mapping.reimbursements] !== undefined ? parseNum(row[mapping.reimbursements], -1) : (row['Reimbursement'] !== undefined || row['Reimbursements'] !== undefined ? parseNum(row['Reimbursement'] ?? row['Reimbursements'], -1) : -1);
+    const manualGrossSalary = mapping.grossSalary && row[mapping.grossSalary] !== undefined ? parseNum(row[mapping.grossSalary], -1) : (row['Gross Salary'] !== undefined || row['Gross'] !== undefined || row['Gross Pay'] !== undefined ? parseNum(row['Gross Salary'] ?? row['Gross'] ?? row['Gross Pay'], -1) : -1);
 
     // Parse manual deductions if present
     const manualPf = mapping.providentFund && row[mapping.providentFund] !== undefined ? parseNum(row[mapping.providentFund], -1) : (row['Provident Fund (PF)'] !== undefined || row['Provident Fund'] !== undefined || row['PF'] !== undefined ? parseNum(row['Provident Fund (PF)'] ?? row['Provident Fund'] ?? row['PF'], -1) : -1);
     const manualPt = mapping.professionalTax && row[mapping.professionalTax] !== undefined ? parseNum(row[mapping.professionalTax], -1) : (row['Professional Tax (PT)'] !== undefined || row['Professional Tax'] !== undefined || row['PT'] !== undefined ? parseNum(row['Professional Tax (PT)'] ?? row['Professional Tax'] ?? row['PT'], -1) : -1);
     const manualLopDeduction = mapping.lopDeduction && row[mapping.lopDeduction] !== undefined ? parseNum(row[mapping.lopDeduction], -1) : (row['Loss of Pay (LOP Deductions)'] !== undefined || row['Loss of Pay Deduction'] !== undefined || row['LOP Deduction'] !== undefined ? parseNum(row['Loss of Pay (LOP Deductions)'] ?? row['Loss of Pay Deduction'] ?? row['LOP Deduction'], -1) : -1);
     const manualLateDeduction = mapping.lateDeduction && row[mapping.lateDeduction] !== undefined ? parseNum(row[mapping.lateDeduction], -1) : (row['Late Arrival Penalty'] !== undefined || row['Late Penalty'] !== undefined || row['Late Deduction'] !== undefined ? parseNum(row['Late Arrival Penalty'] ?? row['Late Penalty'] ?? row['Late Deduction'], -1) : -1);
-    const manualLoanAdvance = mapping.loanAdvance && row[mapping.loanAdvance] !== undefined ? parseNum(row[mapping.loanAdvance], -1) : (row['Loan & Salary Advances'] !== undefined || row['Loan / Advances'] !== undefined || row['Loan'] !== undefined || row['Advance'] !== undefined || row['Salary Advance'] !== undefined ? parseNum(row['Loan & Salary Advances'] ?? row['Loan / Advances'] ?? row['Loan'] ?? row['Advance'] ?? row['Salary Advance'], -1) : -1);
-    const manualOtherDeductions = mapping.otherDeductions && row[mapping.otherDeductions] !== undefined ? parseNum(row[mapping.otherDeductions], -1) : (row['Other Deductions'] !== undefined ? parseNum(row['Other Deductions'], -1) : -1);
+    const manualLoanAdvance = mapping.loanAdvance && row[mapping.loanAdvance] !== undefined ? parseNum(row[mapping.loanAdvance], -1) : (row['Loan & Salary Advances'] !== undefined || row['Loan / Advances'] !== undefined || row['Loan / Advance'] !== undefined || row['Loan'] !== undefined || row['Advance'] !== undefined || row['Salary Advance'] !== undefined ? parseNum(row['Loan & Salary Advances'] ?? row['Loan / Advances'] ?? row['Loan / Advance'] ?? row['Loan'] ?? row['Advance'] ?? row['Salary Advance'], -1) : -1);
+    const manualOtherDeductions = mapping.otherDeductions && row[mapping.otherDeductions] !== undefined ? parseNum(row[mapping.otherDeductions], -1) : (row['Other Deductions'] !== undefined || row['Other Deduction'] !== undefined ? parseNum(row['Other Deductions'] ?? row['Other Deduction'], -1) : -1);
+    const manualTotalDeduction = mapping.totalDeduction && row[mapping.totalDeduction] !== undefined ? parseNum(row[mapping.totalDeduction], -1) : (row['Total Deduction'] !== undefined || row['Total Deductions'] !== undefined ? parseNum(row['Total Deduction'] ?? row['Total Deductions'], -1) : -1);
+    const manualNetPay = mapping.netPay && row[mapping.netPay] !== undefined ? parseNum(row[mapping.netPay], -1) : (row['Net Pay'] !== undefined || row['Net Salary'] !== undefined ? parseNum(row['Net Pay'] ?? row['Net Salary'], -1) : -1);
 
     // Business Logic Validations
     if (daysPresent < 0) {
@@ -277,16 +403,20 @@ export function mapRowsToAttendance(
       manualConveyance: manualConveyance >= 0 ? manualConveyance : undefined,
       manualDa: manualDa >= 0 ? manualDa : undefined,
       manualSpecialAllowance: manualSpecialAllowance >= 0 ? manualSpecialAllowance : undefined,
+      manualOtherAllowance: manualOtherAllowance >= 0 ? manualOtherAllowance : undefined,
       manualMedicalAllowance: manualMedicalAllowance >= 0 ? manualMedicalAllowance : undefined,
       manualOvertimePay: manualOvertimePay >= 0 ? manualOvertimePay : undefined,
       manualIncentiveBonus: manualIncentiveBonus >= 0 ? manualIncentiveBonus : undefined,
       manualReimbursements: manualReimbursements >= 0 ? manualReimbursements : undefined,
+      manualGrossSalary: manualGrossSalary >= 0 ? manualGrossSalary : undefined,
       manualPf: manualPf >= 0 ? manualPf : undefined,
       manualPt: manualPt >= 0 ? manualPt : undefined,
       manualLopDeduction: manualLopDeduction >= 0 ? manualLopDeduction : undefined,
       manualLateDeduction: manualLateDeduction >= 0 ? manualLateDeduction : undefined,
       manualLoanAdvance: manualLoanAdvance >= 0 ? manualLoanAdvance : undefined,
       manualOtherDeductions: manualOtherDeductions >= 0 ? manualOtherDeductions : undefined,
+      manualTotalDeduction: manualTotalDeduction >= 0 ? manualTotalDeduction : undefined,
+      manualNetPay: manualNetPay >= 0 ? manualNetPay : undefined,
     });
   });
 

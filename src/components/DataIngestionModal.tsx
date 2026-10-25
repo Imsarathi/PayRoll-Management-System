@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   X, 
   UploadCloud, 
@@ -10,12 +10,14 @@ import {
   ArrowRight, 
   ChevronRight, 
   RefreshCw,
-  Download
+  Download,
+  Calendar
 } from 'lucide-react';
 import { AttendanceRecord, ColumnMapping } from '../types/payroll';
 import { 
   parseAttendanceExcel, 
   mapRowsToAttendance, 
+  autoDetectMapping,
   DEFAULT_COLUMN_KEYWORDS, 
   downloadSampleAttendanceTemplate 
 } from '../utils/excelParser';
@@ -24,8 +26,10 @@ import { INITIAL_ATTENDANCE } from '../utils/sampleData';
 interface DataIngestionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onApplyAttendance: (records: AttendanceRecord[]) => void;
+  onApplyAttendance: (records: AttendanceRecord[], targetMonth?: string) => void;
   totalMonthDays: number;
+  currentSelectedMonth?: string;
+  onArchiveCurrentMonth?: () => void;
 }
 
 export const DataIngestionModal: React.FC<DataIngestionModalProps> = ({
@@ -33,8 +37,12 @@ export const DataIngestionModal: React.FC<DataIngestionModalProps> = ({
   onClose,
   onApplyAttendance,
   totalMonthDays,
+  currentSelectedMonth,
+  onArchiveCurrentMonth,
 }) => {
   const [step, setStep] = useState<'upload' | 'mapping' | 'preview'>('upload');
+  const [targetMonth, setTargetMonth] = useState<string>(currentSelectedMonth || '2026-06');
+  const [archivePreviousBeforeApplying, setArchivePreviousBeforeApplying] = useState<boolean>(true);
   const [fileName, setFileName] = useState<string>('');
   const [headers, setHeaders] = useState<string[]>([]);
   const [rawRows, setRawRows] = useState<Record<string, any>[]>([]);
@@ -55,13 +63,21 @@ export const DataIngestionModal: React.FC<DataIngestionModalProps> = ({
   const [validationErrors, setValidationErrors] = useState<{ row: number; empId?: string; field: string; message: string; severity: 'error' | 'warning' }[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+  const [inlineError, setInlineError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (currentSelectedMonth) {
+      setTargetMonth(currentSelectedMonth);
+    }
+  }, [currentSelectedMonth, isOpen]);
 
   if (!isOpen) return null;
 
   const handleFileUpload = async (file: File) => {
     try {
       setIsProcessing(true);
+      setInlineError(null);
       setFileName(file.name);
       const result = await parseAttendanceExcel(file);
       setHeaders(result.headers);
@@ -71,7 +87,8 @@ export const DataIngestionModal: React.FC<DataIngestionModalProps> = ({
       setValidationErrors(result.validationErrors);
       setStep('mapping');
     } catch (err: any) {
-      alert(`Error reading file: ${err.message || 'Unknown error'}`);
+      console.error('File parsing error:', err);
+      setInlineError(`Error reading file: ${err.message || 'Please upload a valid Excel (.xlsx, .xls) or CSV file.'}`);
     } finally {
       setIsProcessing(false);
     }
@@ -97,24 +114,49 @@ export const DataIngestionModal: React.FC<DataIngestionModalProps> = ({
   const handleMappingChange = (field: keyof ColumnMapping, header: string) => {
     const updatedMapping = { ...mapping, [field]: header };
     setMapping(updatedMapping);
-    const { records, validationErrors: errors } = mapRowsToAttendance(rawRows, updatedMapping, totalMonthDays);
-    setParsedRecords(records);
-    setValidationErrors(errors);
+    setInlineError(null);
+    try {
+      const { records, validationErrors: errors } = mapRowsToAttendance(rawRows, updatedMapping, totalMonthDays);
+      setParsedRecords(records);
+      setValidationErrors(errors);
+    } catch (err: any) {
+      console.error('Error re-mapping rows:', err);
+    }
   };
 
   const handleProceedToPreview = () => {
-    if (!mapping.empId) {
-      alert('Please map the Employee ID column before proceeding.');
-      return;
+    setInlineError(null);
+    try {
+      let effectiveMapping = { ...mapping };
+      if (!effectiveMapping.empId) {
+        // If empId is not explicitly mapped, auto-select candidate column or column 0
+        const candidate = headers.find(h => {
+          const c = h.toLowerCase().replace(/[^a-z0-9]/g, '');
+          return c.includes('id') || c.includes('code') || c.includes('emp') || c.startsWith('sr') || c.startsWith('no');
+        }) || headers[0] || '';
+        effectiveMapping.empId = candidate;
+        setMapping(effectiveMapping);
+      }
+
+      const { records, validationErrors: errors } = mapRowsToAttendance(rawRows, effectiveMapping, totalMonthDays);
+      if (records.length === 0) {
+        setInlineError('No valid employee records were found in this sheet. Please verify column mappings or ensure data rows are present.');
+        return;
+      }
+      setParsedRecords(records);
+      setValidationErrors(errors);
+      setStep('preview');
+    } catch (err: any) {
+      console.error('Error generating preview:', err);
+      setInlineError(`Failed to generate parsed preview: ${err.message || 'Unknown error'}. Please check column mappings.`);
     }
-    const { records, validationErrors: errors } = mapRowsToAttendance(rawRows, mapping, totalMonthDays);
-    setParsedRecords(records);
-    setValidationErrors(errors);
-    setStep('preview');
   };
 
   const handleCommit = () => {
-    onApplyAttendance(parsedRecords);
+    if (archivePreviousBeforeApplying && onArchiveCurrentMonth) {
+      onArchiveCurrentMonth();
+    }
+    onApplyAttendance(parsedRecords, targetMonth);
     onClose();
   };
 
@@ -168,6 +210,40 @@ export const DataIngestionModal: React.FC<DataIngestionModalProps> = ({
           {/* STEP 1: UPLOAD */}
           {step === 'upload' && (
             <div className="space-y-6">
+              {/* Target Month Selector */}
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200/80 rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+                <div className="flex items-center space-x-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0">
+                    <Calendar className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-900">Designated Pay Month for this Upload</h4>
+                    <p className="text-[11px] text-slate-500">
+                      Specify which month (e.g. June 2026, July 2026, September 2026) this spreadsheet corresponds to.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-xs font-semibold text-slate-700">Month:</span>
+                  <input
+                    type="month"
+                    value={targetMonth}
+                    onChange={(e) => setTargetMonth(e.target.value)}
+                    className="bg-white border border-blue-300 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-900 shadow-2xs focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                  />
+                </div>
+              </div>
+
+              {inlineError && (
+                <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl flex items-start space-x-2.5 text-xs text-rose-800">
+                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="font-semibold">{inlineError}</p>
+                    <p className="text-[11px] text-rose-600 mt-0.5">Please check your spreadsheet file format and try again.</p>
+                  </div>
+                </div>
+              )}
+
               <div
                 onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
                 onDragLeave={() => setDragActive(false)}
@@ -244,14 +320,46 @@ export const DataIngestionModal: React.FC<DataIngestionModalProps> = ({
           {/* STEP 2: COLUMN MAPPING */}
           {step === 'mapping' && (
             <div className="space-y-6">
-              <div className="bg-blue-50 border border-blue-200 rounded-xl p-3.5 flex items-center justify-between text-xs text-blue-900">
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-blue-900">
                 <div className="flex items-center space-x-2">
                   <Sparkles className="w-4 h-4 text-blue-600 shrink-0" />
                   <span>
-                    File: <strong className="font-semibold">{fileName}</strong> ({rawRows.length} rows detected). We've auto-mapped attendance columns based on headers. Adjust if needed:
+                    File: <strong className="font-semibold">{fileName}</strong> ({rawRows.length} rows, {headers.length} columns detected).
                   </span>
                 </div>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => {
+                      const auto = autoDetectMapping(headers);
+                      setMapping(auto);
+                      const { records, validationErrors: errs } = mapRowsToAttendance(rawRows, auto, totalMonthDays);
+                      setParsedRecords(records);
+                      setValidationErrors(errs);
+                      setInlineError(null);
+                    }}
+                    className="text-[11px] font-semibold text-blue-700 hover:text-blue-900 bg-white border border-blue-200 px-2.5 py-1 rounded-md hover:bg-blue-50 transition"
+                  >
+                    Reset Auto-Mapping
+                  </button>
+                  <button
+                    onClick={handleProceedToPreview}
+                    className="text-[11px] font-bold text-white bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded-md transition shadow-2xs inline-flex items-center space-x-1"
+                  >
+                    <span>Preview Now</span>
+                    <ArrowRight className="w-3 h-3" />
+                  </button>
+                </div>
               </div>
+
+              {inlineError && (
+                <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl flex items-start space-x-2.5 text-xs text-rose-800 animate-in fade-in">
+                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="font-semibold">{inlineError}</p>
+                    <p className="text-[11px] text-rose-700 mt-0.5">Please check that the Employee ID and attendance columns are assigned to the correct headers below.</p>
+                  </div>
+                </div>
+              )}
 
               {/* Attendance Fields Group */}
               <div className="space-y-2">
@@ -478,17 +586,132 @@ export const DataIngestionModal: React.FC<DataIngestionModalProps> = ({
                 </div>
               </div>
 
-              {/* Automatic Calculation Banner */}
+              {/* Direct Excel Salary Columns Group */}
+              <div className="space-y-2">
+                <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center space-x-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-600"></span>
+                  <span>Direct Salary Components (Exact Excel Values)</span>
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 border border-slate-200 rounded-xl p-3.5 bg-emerald-50/30">
+                  <div className="space-y-1 p-2.5 rounded-lg bg-white border border-slate-200">
+                    <label className="text-[11px] font-bold text-slate-800 block">Basic Pay</label>
+                    <select
+                      value={mapping.basicPay || ''}
+                      onChange={(e) => handleMappingChange('basicPay', e.target.value)}
+                      className="w-full text-xs font-medium bg-slate-50 border border-slate-300 rounded-lg px-2 py-1"
+                    >
+                      <option value="">-- Auto/None --</option>
+                      {headers.map((h) => (<option key={h} value={h}>{h}</option>))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1 p-2.5 rounded-lg bg-white border border-slate-200">
+                    <label className="text-[11px] font-bold text-slate-800 block">D. A. (Dearness)</label>
+                    <select
+                      value={mapping.da || ''}
+                      onChange={(e) => handleMappingChange('da', e.target.value)}
+                      className="w-full text-xs font-medium bg-slate-50 border border-slate-300 rounded-lg px-2 py-1"
+                    >
+                      <option value="">-- Auto/None --</option>
+                      {headers.map((h) => (<option key={h} value={h}>{h}</option>))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1 p-2.5 rounded-lg bg-white border border-slate-200">
+                    <label className="text-[11px] font-bold text-slate-800 block">H. R. A.</label>
+                    <select
+                      value={mapping.hra || ''}
+                      onChange={(e) => handleMappingChange('hra', e.target.value)}
+                      className="w-full text-xs font-medium bg-slate-50 border border-slate-300 rounded-lg px-2 py-1"
+                    >
+                      <option value="">-- Auto/None --</option>
+                      {headers.map((h) => (<option key={h} value={h}>{h}</option>))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1 p-2.5 rounded-lg bg-white border border-slate-200">
+                    <label className="text-[11px] font-bold text-slate-800 block">Special Allowance</label>
+                    <select
+                      value={mapping.specialAllowance || ''}
+                      onChange={(e) => handleMappingChange('specialAllowance', e.target.value)}
+                      className="w-full text-xs font-medium bg-slate-50 border border-slate-300 rounded-lg px-2 py-1"
+                    >
+                      <option value="">-- Auto/None --</option>
+                      {headers.map((h) => (<option key={h} value={h}>{h}</option>))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1 p-2.5 rounded-lg bg-white border border-slate-200">
+                    <label className="text-[11px] font-bold text-slate-800 block">Other Allowance</label>
+                    <select
+                      value={mapping.otherAllowance || ''}
+                      onChange={(e) => handleMappingChange('otherAllowance', e.target.value)}
+                      className="w-full text-xs font-medium bg-slate-50 border border-slate-300 rounded-lg px-2 py-1"
+                    >
+                      <option value="">-- Auto/None --</option>
+                      {headers.map((h) => (<option key={h} value={h}>{h}</option>))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1 p-2.5 rounded-lg bg-white border border-slate-200">
+                    <label className="text-[11px] font-bold text-slate-800 block">O.T (Overtime)</label>
+                    <select
+                      value={mapping.overtimePay || ''}
+                      onChange={(e) => handleMappingChange('overtimePay', e.target.value)}
+                      className="w-full text-xs font-medium bg-slate-50 border border-slate-300 rounded-lg px-2 py-1"
+                    >
+                      <option value="">-- Auto/None --</option>
+                      {headers.map((h) => (<option key={h} value={h}>{h}</option>))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1 p-2.5 rounded-lg bg-white border border-slate-200">
+                    <label className="text-[11px] font-bold text-slate-800 block">Gross Salary</label>
+                    <select
+                      value={mapping.grossSalary || ''}
+                      onChange={(e) => handleMappingChange('grossSalary', e.target.value)}
+                      className="w-full text-xs font-medium bg-slate-50 border border-slate-300 rounded-lg px-2 py-1"
+                    >
+                      <option value="">-- Auto/None --</option>
+                      {headers.map((h) => (<option key={h} value={h}>{h}</option>))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1 p-2.5 rounded-lg bg-white border border-slate-200">
+                    <label className="text-[11px] font-bold text-slate-800 block">Total Deduction</label>
+                    <select
+                      value={mapping.totalDeduction || ''}
+                      onChange={(e) => handleMappingChange('totalDeduction', e.target.value)}
+                      className="w-full text-xs font-medium bg-slate-50 border border-slate-300 rounded-lg px-2 py-1"
+                    >
+                      <option value="">-- Auto/None --</option>
+                      {headers.map((h) => (<option key={h} value={h}>{h}</option>))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1 p-2.5 rounded-lg bg-white border border-slate-200">
+                    <label className="text-[11px] font-bold text-emerald-800 block">Net Pay</label>
+                    <select
+                      value={mapping.netPay || ''}
+                      onChange={(e) => handleMappingChange('netPay', e.target.value)}
+                      className="w-full text-xs font-medium bg-emerald-50 border border-emerald-300 rounded-lg px-2 py-1 font-bold text-emerald-800"
+                    >
+                      <option value="">-- Auto/None --</option>
+                      {headers.map((h) => (<option key={h} value={h}>{h}</option>))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Exact Values Notice */}
               <div className="p-4 rounded-xl border border-emerald-200 bg-emerald-50/50 flex items-start space-x-3">
                 <div className="p-2 rounded-lg bg-emerald-100 text-emerald-700 shrink-0 mt-0.5">
                   <Sparkles className="w-4 h-4" />
                 </div>
                 <div className="text-xs text-slate-700 space-y-1">
-                  <h4 className="font-bold text-emerald-950">Automated Payroll Breakdown Active</h4>
+                  <h4 className="font-bold text-emerald-950">Direct Excel Value Preservation Active</h4>
                   <p className="text-slate-600 leading-relaxed">
-                    Salary components (<strong>Basic 50%</strong>, <strong>HRA 40%</strong>, <strong>Special Allowance</strong>), 
-                    <strong> Overtime Pay (Basic ÷ Present Days ÷ 8 × OT Hours)</strong>, <strong> Loss of Pay (LOP)</strong>, 
-                    <strong> Late Arrival Penalty (1 late = 0.5 day wage)</strong>, and imported <strong>Incentives</strong> or <strong>Loan Advances</strong> are calculated automatically.
+                    Values mapped from your Excel sheet (<strong>Basic Pay</strong>, <strong>D. A.</strong>, <strong>H. R. A.</strong>, <strong>Special Allowance</strong>, <strong>Other Allowance</strong>, <strong>O.T</strong>, <strong>Gross Salary</strong>, <strong>Deductions</strong>, and <strong>Net Pay</strong>) are filled directly into the payslips without unwanted automatic recalculation overrides.
                   </p>
                 </div>
               </div>
@@ -574,6 +797,28 @@ export const DataIngestionModal: React.FC<DataIngestionModalProps> = ({
                   </tbody>
                 </table>
               </div>
+
+              {/* Step 3 Options: Target Month & Auto-Archive */}
+              <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                <label className="flex items-center space-x-2 text-slate-700 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={archivePreviousBeforeApplying}
+                    onChange={(e) => setArchivePreviousBeforeApplying(e.target.checked)}
+                    className="rounded text-blue-600 focus:ring-blue-500 h-4 w-4"
+                  />
+                  <span>Automatically archive current active payslips to <strong>Past Payslips</strong> history before applying</span>
+                </label>
+                <div className="flex items-center space-x-2">
+                  <span className="text-slate-500">Applying to Month:</span>
+                  <input
+                    type="month"
+                    value={targetMonth}
+                    onChange={(e) => setTargetMonth(e.target.value)}
+                    className="bg-white border border-slate-300 rounded-md px-2 py-1 text-xs font-bold text-slate-800"
+                  />
+                </div>
+              </div>
             </div>
           )}
 
@@ -603,9 +848,9 @@ export const DataIngestionModal: React.FC<DataIngestionModalProps> = ({
             {step === 'mapping' && (
               <button
                 onClick={handleProceedToPreview}
-                className="inline-flex items-center space-x-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow-xs transition"
+                className="inline-flex items-center space-x-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow-xs hover:shadow transition cursor-pointer"
               >
-                <span>Preview Parsed Data</span>
+                <span>Preview Parsed Data ({rawRows.length} Rows)</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             )}

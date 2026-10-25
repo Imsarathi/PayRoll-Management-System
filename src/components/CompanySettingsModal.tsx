@@ -14,7 +14,12 @@ import {
   PenTool,
   RotateCcw,
   CheckCircle2,
-  FileCheck
+  FileCheck,
+  MessageCircle,
+  Activity,
+  Send,
+  Key,
+  ExternalLink
 } from 'lucide-react';
 import { CompanySettings } from '../types/payroll';
 
@@ -23,6 +28,7 @@ interface CompanySettingsModalProps {
   settings: CompanySettings;
   activeMonth?: string;
   periodLabel?: string;
+  initialTab?: 'profile' | 'signature' | 'rules' | 'whatsapp';
   onClose: () => void;
   onSaveSettings: (newSettings: CompanySettings) => void;
 }
@@ -32,6 +38,7 @@ export const CompanySettingsModal: React.FC<CompanySettingsModalProps> = ({
   settings,
   activeMonth,
   periodLabel,
+  initialTab = 'profile',
   onClose,
   onSaveSettings,
 }) => {
@@ -41,15 +48,21 @@ export const CompanySettingsModal: React.FC<CompanySettingsModalProps> = ({
     brandSubTitle: settings.brandSubTitle || 'Enterprise Payroll & HRMS',
     showDigitalSignature: settings.showDigitalSignature !== undefined ? settings.showDigitalSignature : true,
     signatureTimestamp: settings.signatureTimestamp !== undefined ? settings.signatureTimestamp : true,
+    whatsappProvider: settings.whatsappProvider || 'meta',
+    whatsappPhoneNumberId: settings.whatsappPhoneNumberId || '',
+    whatsappAccessToken: settings.whatsappAccessToken || '',
   });
   
-  const [activeTab, setActiveTab] = useState<'profile' | 'signature' | 'rules'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'signature' | 'rules' | 'whatsapp'>(initialTab);
   const [savedSuccess, setSavedSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const sigFileInputRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasDrawn, setHasDrawn] = useState(false);
+
+  const [testingConnection, setTestingConnection] = useState(false);
+  const [testResult, setTestResult] = useState<{ success?: boolean; message?: string; error?: string } | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -59,11 +72,57 @@ export const CompanySettingsModal: React.FC<CompanySettingsModalProps> = ({
         brandSubTitle: settings.brandSubTitle || 'Enterprise Payroll & HRMS',
         showDigitalSignature: settings.showDigitalSignature !== undefined ? settings.showDigitalSignature : true,
         signatureTimestamp: settings.signatureTimestamp !== undefined ? settings.signatureTimestamp : true,
+        whatsappProvider: settings.whatsappProvider || 'meta',
+        whatsappPhoneNumberId: settings.whatsappPhoneNumberId || '',
+        whatsappAccessToken: settings.whatsappAccessToken || '',
       });
+      setActiveTab(initialTab);
       setSavedSuccess(false);
       setHasDrawn(false);
+      setTestResult(null);
     }
-  }, [isOpen, settings]);
+  }, [isOpen, settings, initialTab]);
+
+  const handleTestMetaConnection = async () => {
+    setTestingConnection(true);
+    setTestResult(null);
+    try {
+      const res = await fetch('/api/whatsapp/test-connection', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phoneNumberId: formData.whatsappPhoneNumberId,
+          accessToken: formData.whatsappAccessToken,
+        }),
+      });
+      const rawText = await res.text();
+      let data: any = {};
+      try {
+        data = JSON.parse(rawText);
+      } catch {
+        data = { error: rawText || `Server responded with status ${res.status}` };
+      }
+
+      if (res.ok && data.success) {
+        setTestResult({
+          success: true,
+          message: `Connected to Meta Cloud API! Verified Sender: ${data.phoneData?.verifiedName || data.phoneData?.displayPhoneNumber || 'Active'}`,
+        });
+      } else {
+        setTestResult({
+          success: false,
+          error: data.error || 'Meta Authentication failed.',
+        });
+      }
+    } catch (err: any) {
+      setTestResult({
+        success: false,
+        error: err.message || 'Failed to communicate with Meta endpoint.',
+      });
+    } finally {
+      setTestingConnection(false);
+    }
+  };
 
   // Initialize Canvas when signature tab opens
   useEffect(() => {
@@ -79,15 +138,18 @@ export const CompanySettingsModal: React.FC<CompanySettingsModalProps> = ({
     }
   }, [activeTab]);
 
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
   if (!isOpen) return null;
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 2 * 1024 * 1024) {
-        alert('Please choose an image under 2MB.');
+        setUploadError('Please choose a logo image under 2MB.');
         return;
       }
+      setUploadError(null);
       const reader = new FileReader();
       reader.onload = (event) => {
         if (event.target?.result) {
@@ -102,9 +164,10 @@ export const CompanySettingsModal: React.FC<CompanySettingsModalProps> = ({
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 2 * 1024 * 1024) {
-        alert('Please choose an image under 2MB.');
+        setUploadError('Please choose a signature image under 2MB.');
         return;
       }
+      setUploadError(null);
       const reader = new FileReader();
       reader.onload = (event) => {
         if (event.target?.result) {
@@ -228,10 +291,10 @@ export const CompanySettingsModal: React.FC<CompanySettingsModalProps> = ({
         </div>
 
         {/* Tab Strip */}
-        <div className="px-6 border-b border-slate-200 flex space-x-6 text-xs font-semibold">
+        <div className="px-6 border-b border-slate-200 flex space-x-4 sm:space-x-6 text-xs font-semibold overflow-x-auto">
           <button
             onClick={() => setActiveTab('profile')}
-            className={`py-3 border-b-2 transition cursor-pointer ${
+            className={`py-3 border-b-2 transition cursor-pointer whitespace-nowrap ${
               activeTab === 'profile'
                 ? 'border-blue-600 text-blue-600'
                 : 'border-transparent text-slate-500 hover:text-slate-800'
@@ -242,7 +305,7 @@ export const CompanySettingsModal: React.FC<CompanySettingsModalProps> = ({
 
           <button
             onClick={() => setActiveTab('signature')}
-            className={`py-3 border-b-2 transition cursor-pointer flex items-center space-x-1.5 ${
+            className={`py-3 border-b-2 transition cursor-pointer flex items-center space-x-1.5 whitespace-nowrap ${
               activeTab === 'signature'
                 ? 'border-blue-600 text-blue-600'
                 : 'border-transparent text-slate-500 hover:text-slate-800'
@@ -254,13 +317,26 @@ export const CompanySettingsModal: React.FC<CompanySettingsModalProps> = ({
 
           <button
             onClick={() => setActiveTab('rules')}
-            className={`py-3 border-b-2 transition cursor-pointer ${
+            className={`py-3 border-b-2 transition cursor-pointer whitespace-nowrap ${
               activeTab === 'rules'
                 ? 'border-blue-600 text-blue-600'
                 : 'border-transparent text-slate-500 hover:text-slate-800'
             }`}
           >
             Payroll & Statutory Rules
+          </button>
+
+          <button
+            id="tab-btn-whatsapp-gateway"
+            onClick={() => setActiveTab('whatsapp')}
+            className={`py-3 border-b-2 transition cursor-pointer flex items-center space-x-1.5 whitespace-nowrap ${
+              activeTab === 'whatsapp'
+                ? 'border-emerald-600 text-emerald-600 font-bold'
+                : 'border-transparent text-emerald-700 hover:text-emerald-800'
+            }`}
+          >
+            <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
+            <span>WhatsApp Gateway (Meta & Web)</span>
           </button>
         </div>
 
@@ -778,6 +854,160 @@ export const CompanySettingsModal: React.FC<CompanySettingsModalProps> = ({
                 </div>
 
               </div>
+            </div>
+          )}
+
+          {/* TAB 4: WHATSAPP GATEWAY (META CLOUD API & WEB ASSIST) */}
+          {activeTab === 'whatsapp' && (
+            <div className="space-y-4 animate-in fade-in duration-150">
+              
+              {/* Header Info */}
+              <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-md space-y-1.5">
+                <div className="flex items-center space-x-2">
+                  <MessageCircle className="w-4 h-4 text-emerald-600" />
+                  <h3 className="font-bold text-slate-900 text-xs">WhatsApp Direct PDF Payslip Gateway</h3>
+                </div>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  Send official <strong>.pdf document attachments</strong> straight into employees' WhatsApp chats in 1 click using Meta WhatsApp Cloud API or Web Assist.
+                </p>
+              </div>
+
+              {/* Provider Selection */}
+              <div>
+                <label className="text-[11px] font-semibold text-slate-700 block mb-1.5">
+                  Select Active WhatsApp Dispatch Provider
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, whatsappProvider: 'meta' })}
+                    className={`p-3 rounded-lg border text-left transition cursor-pointer ${
+                      formData.whatsappProvider === 'meta'
+                        ? 'border-emerald-500 bg-emerald-50/70 text-emerald-950 ring-1 ring-emerald-400'
+                        : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
+                    }`}
+                  >
+                    <div className="font-bold text-xs flex items-center space-x-1.5">
+                      <span>Meta WhatsApp Cloud API</span>
+                      <span className="text-[9.5px] bg-emerald-200 text-emerald-800 px-1.5 py-0.5 rounded font-bold">Recommended</span>
+                    </div>
+                    <div className="text-[11px] text-slate-500 mt-1">Official Meta Graph API • Background PDF delivery</div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, whatsappProvider: 'web_assist' })}
+                    className={`p-3 rounded-lg border text-left transition cursor-pointer ${
+                      formData.whatsappProvider === 'web_assist'
+                        ? 'border-slate-700 bg-slate-100 text-slate-900 ring-1 ring-slate-400'
+                        : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
+                    }`}
+                  >
+                    <div className="font-bold text-xs">Web Assist (Direct)</div>
+                    <div className="text-[11px] text-slate-500 mt-1">Direct browser WhatsApp Web • Zero setup required</div>
+                  </button>
+                </div>
+              </div>
+
+              {/* META CLOUD API CONFIGURATION */}
+              {formData.whatsappProvider === 'meta' && (
+                <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-lg space-y-3">
+                  <div className="flex items-center justify-between pb-1 border-b border-slate-200">
+                    <span className="font-bold text-xs text-slate-800">Meta WhatsApp Cloud API Credentials</span>
+                    <span className="text-[10px] text-emerald-700 font-bold bg-emerald-100 px-2 py-0.5 rounded">Graph v21.0</span>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-700 block mb-1">
+                      WhatsApp Phone Number ID <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 104829104820194"
+                      value={formData.whatsappPhoneNumberId || ''}
+                      onChange={(e) => setFormData({ ...formData, whatsappPhoneNumberId: e.target.value.trim() })}
+                      className="w-full text-xs font-mono bg-white border border-slate-300 rounded p-2 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    />
+                    <p className="text-[10px] text-slate-400 mt-0.5">Found in your Meta Developer App &gt; WhatsApp &gt; API Setup (&quot;Phone number ID&quot;)</p>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-700 block mb-1">
+                      WhatsApp Access Token <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="password"
+                      placeholder="e.g. EAAG..."
+                      value={formData.whatsappAccessToken || ''}
+                      onChange={(e) => setFormData({ ...formData, whatsappAccessToken: e.target.value.trim() })}
+                      className="w-full text-xs font-mono bg-white border border-slate-300 rounded p-2 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    />
+                    <p className="text-[10px] text-slate-400 mt-0.5">
+                      Use your Permanent System User Token (starts with <code>EAAG...</code>). For quick testing, you can use the 24-hour Temporary Access Token.
+                    </p>
+                  </div>
+
+                  <div className="pt-1 flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={handleTestMetaConnection}
+                      disabled={testingConnection || !formData.whatsappPhoneNumberId || !formData.whatsappAccessToken}
+                      className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer shadow-xs"
+                    >
+                      {testingConnection ? (
+                        <span>Validating Meta API...</span>
+                      ) : (
+                        <>
+                          <Send className="w-3 h-3" />
+                          <span>Test Meta API Connection</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {testResult && (
+                    <div className={`p-2.5 rounded border text-xs ${testResult.success ? 'bg-emerald-50 border-emerald-300 text-emerald-800' : 'bg-rose-50 border-rose-300 text-rose-800'}`}>
+                      {testResult.success ? (
+                        <div className="flex items-center space-x-1.5">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                          <span>{testResult.message}</span>
+                        </div>
+                      ) : (
+                        <div className="space-y-0.5">
+                          <span className="font-bold">Connection Error:</span>
+                          <p className="text-[11px] font-mono">{testResult.error}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="p-2.5 bg-emerald-50/70 border border-emerald-200 rounded text-[11px] text-slate-700 space-y-1">
+                    <div className="flex items-center space-x-1 font-bold text-emerald-900">
+                      <Key className="w-3.5 h-3.5" />
+                      <span>Meta Sandbox Allowed Phone Numbers</span>
+                    </div>
+                    <p>
+                      In Meta test mode, you must add recipient phone numbers (e.g. <code>+91 91508 58901</code>) under <strong>API Setup &gt; Step 1: Select phone numbers &gt; Manage phone number list</strong>, or switch to <strong>Web Assist (Direct)</strong> to dispatch to any number instantly!
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* WEB ASSIST EXPLANATION */}
+              {formData.whatsappProvider === 'web_assist' && (
+                <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 space-y-2">
+                  <div className="font-bold text-slate-900 flex items-center space-x-1.5">
+                    <ExternalLink className="w-4 h-4 text-emerald-600" />
+                    <span>Web Assist (Direct Dispatch) Features</span>
+                  </div>
+                  <ul className="list-disc pl-4 space-y-1 text-slate-600 text-[11px]">
+                    <li><strong>Automatic PDF Payslip Download:</strong> Generates and downloads the official encrypted PDF directly.</li>
+                    <li><strong>Pre-filled WhatsApp Advice:</strong> Automatically formats the earnings, deductions, and net pay message.</li>
+                    <li><strong>Zero API Configuration:</strong> Works immediately with WhatsApp Web or WhatsApp Desktop without requiring tokens or sandbox joining.</li>
+                  </ul>
+                </div>
+              )}
+
             </div>
           )}
 

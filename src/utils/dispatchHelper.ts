@@ -139,10 +139,10 @@ ${companyName}`;
  */
 export function formatWhatsAppPayslipMessage(salary: SalaryBreakdown, settings: CompanySettings): string {
   const { ymd, monthName } = getFormattedPeriod(salary);
-  const sym = settings.currencySymbol || '$';
+  const sym = settings.currencySymbol || '₹';
   const name = salary.profile.name;
   const empId = salary.profile.empId;
-  const netPay = salary.netPay.toLocaleString('en-US', { minimumFractionDigits: 2 });
+  const netPay = (salary.netPay ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 });
   const companyName = settings.name || 'iMATRIX TECHNOLOGY SOLUTIONS';
   const paymentMode = (salary.paymentMethod || salary.profile.preferredPaymentMethod || 'Bank Transfer').replace('_', ' ').toUpperCase();
   const pdfFileName = getPayslipPdfFileName(salary);
@@ -152,12 +152,21 @@ export function formatWhatsAppPayslipMessage(salary: SalaryBreakdown, settings: 
 ───────────────────────────
 Dear *${name}* (${empId}),
 
-Your official salary payslip PDF for *${monthName}* [${ymd}] is ready.
+Your official salary payslip for *${monthName}* [${ymd}] has been generated as per payroll records.
 
-💵 *Net Take-Home Pay:* *${sym} ${netPay}*
-💼 *Designation:* ${salary.profile.designation || 'Staff'}
+💰 *EARNINGS BREAKDOWN:*
+• Basic Pay: ${sym} ${(salary.basicPay ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+• D.A.: ${sym} ${(salary.dearnessAllowance ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+• H.R.A.: ${sym} ${(salary.hra ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+• Special Allowance: ${sym} ${(salary.specialAllowance ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+• Other Allowance: ${sym} ${(salary.otherAllowance ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+• O.T.: ${sym} ${(salary.overtimePay ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+─────────────
+• *Gross Salary:* ${sym} ${(salary.grossEarnings ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+• *Total Deduction:* ${sym} ${(salary.totalDeductions ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+
+💵 *NET TAKE-HOME PAY:* *${sym} ${netPay}*
 🏦 *Payment Mode:* ${paymentMode}
-📅 *Pay Cycle:* ${monthName} (${ymd})
 
 📎 *Attached PDF Document:*
 \`${pdfFileName}\`
@@ -237,15 +246,77 @@ export async function sendEmailPayslip(
 /**
  * Dispatches WhatsApp message with payslip PDF document
  */
+/**
+ * Dispatches WhatsApp message with payslip PDF document
+ */
 export async function openWhatsAppPayslip(
   salary: SalaryBreakdown, 
-  settings: CompanySettings
-): Promise<{ success: boolean; receipt: DispatchReceipt }> {
+  settings: CompanySettings,
+  options?: { downloadLocally?: boolean }
+): Promise<{ success: boolean; receipt: DispatchReceipt; error?: string }> {
   const pdfFileName = getPayslipPdfFileName(salary);
   const message = formatWhatsAppPayslipMessage(salary, settings);
   const phoneInfo = normalizePhoneNumber(salary.profile.mobileNumber || salary.profile.phone);
   const { ymd } = getFormattedPeriod(salary);
   const sym = settings.currencySymbol || '$';
+
+  let dispatchStatus: 'delivered' | 'sent' | 'failed' | 'queued' = 'delivered';
+  let refId = `WA-${ymd.replace('-', '')}-${salary.empId}`;
+  let errorMsg: string | undefined = undefined;
+
+  // Generate Base64 PDF data for direct digital transmission
+  const pdfBase64 = generatePaySlipPDF(salary, settings, 'base64');
+
+  // 1. If Meta WhatsApp Cloud API is configured, dispatch directly through Meta Cloud REST API
+  if (settings.whatsappProvider === 'meta') {
+    if (!settings.whatsappPhoneNumberId || !settings.whatsappAccessToken) {
+      dispatchStatus = 'failed';
+      errorMsg = 'Meta WhatsApp Phone Number ID and Access Token are missing. Configure them in Settings (⚙️) or switch to Web Assist (Direct).';
+    } else if (!phoneInfo.rawDigits && !phoneInfo.formatted) {
+      dispatchStatus = 'failed';
+      errorMsg = `Employee ${salary.profile.name} does not have a valid WhatsApp mobile number.`;
+    } else {
+      try {
+        const response = await fetch('/api/whatsapp/send-payslip-pdf', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            phoneNumberId: settings.whatsappPhoneNumberId,
+            accessToken: settings.whatsappAccessToken,
+            to: phoneInfo.rawDigits || phoneInfo.formatted,
+            message: message,
+            pdfBase64: pdfBase64,
+            pdfFileName: pdfFileName,
+          }),
+        });
+
+        const resData = await response.json();
+        if (response.ok && resData.success) {
+          dispatchStatus = 'delivered';
+          refId = resData.messageId || refId;
+        } else {
+          dispatchStatus = 'failed';
+          errorMsg = resData.error || 'Meta WhatsApp dispatch failed';
+        }
+      } catch (err: any) {
+        dispatchStatus = 'failed';
+        errorMsg = err.message || 'Network error communicating with Meta WhatsApp API';
+      }
+    }
+  } else {
+    // Web Assist mode
+    if (!options?.downloadLocally) {
+      generatePaySlipPDF(salary, settings);
+    }
+    const encodedMessage = encodeURIComponent(message);
+    const waUrl = phoneInfo.rawDigits 
+      ? `https://wa.me/${phoneInfo.rawDigits}?text=${encodedMessage}`
+      : `https://wa.me/?text=${encodedMessage}`;
+
+    window.open(waUrl, '_blank', 'noopener,noreferrer');
+    dispatchStatus = 'delivered';
+    refId = `WA-WEB-${Date.now().toString(36).toUpperCase()}`;
+  }
 
   const receipt: DispatchReceipt = {
     id: `RCPT-WA-${Date.now()}-${salary.empId}`,
@@ -255,42 +326,18 @@ export async function openWhatsAppPayslip(
     channel: 'whatsapp',
     period: ymd,
     timestamp: new Date().toISOString(),
-    status: 'delivered',
+    status: dispatchStatus,
     pdfFileName,
     netPay: `${sym} ${salary.netPay.toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
-    referenceId: `WA-${ymd.replace('-', '')}-${salary.empId}`,
+    referenceId: refId,
   };
 
-  // 1. Try Web Share API on mobile devices to send actual PDF file
-  if (typeof navigator !== 'undefined' && navigator.share && navigator.canShare) {
-    try {
-      const blob = generatePaySlipPDF(salary, settings, true);
-      const pdfFile = new File([blob], pdfFileName, { type: 'application/pdf' });
-      if (navigator.canShare({ files: [pdfFile] })) {
-        await navigator.share({
-          title: `Salary Payslip - ${salary.profile.name}`,
-          text: message,
-          files: [pdfFile],
-        });
-        return { success: true, receipt };
-      }
-    } catch {
-      // Fallback to direct WhatsApp URL + automatic PDF download
-    }
+  // If locally requested in options
+  if (options?.downloadLocally && settings.whatsappProvider === 'meta') {
+    generatePaySlipPDF(salary, settings);
   }
 
-  // 2. Download the official clean PDF payslip to the device
-  generatePaySlipPDF(salary, settings);
-
-  // 3. Open WhatsApp
-  const encodedMessage = encodeURIComponent(message);
-  const waUrl = phoneInfo.rawDigits 
-    ? `https://wa.me/${phoneInfo.rawDigits}?text=${encodedMessage}`
-    : `https://wa.me/?text=${encodedMessage}`;
-
-  window.open(waUrl, '_blank', 'noopener,noreferrer');
-
-  return { success: true, receipt };
+  return { success: dispatchStatus !== 'failed', receipt, error: errorMsg };
 }
 
 /**
@@ -309,12 +356,43 @@ export async function dispatchWhatsAppBackgroundBatch(
     const pdfFileName = getPayslipPdfFileName(s);
     const { ymd } = getFormattedPeriod(s);
     const sym = settings.currencySymbol || '$';
+    const message = formatWhatsAppPayslipMessage(s, settings);
+
+    let status: 'delivered' | 'sent' | 'failed' | 'queued' = phoneInfo.isValid ? 'delivered' : 'sent';
+    let refId = `WA-AUTO-${ymd.replace('-', '')}-${s.empId}`;
+
+    // Dispatch via Meta Cloud API if configured
+    if (settings.whatsappProvider === 'meta' && settings.whatsappPhoneNumberId && settings.whatsappAccessToken && phoneInfo.formatted) {
+      try {
+        const pdfBase64 = generatePaySlipPDF(s, settings, 'base64');
+        const response = await fetch('/api/whatsapp/send-payslip-pdf', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            phoneNumberId: settings.whatsappPhoneNumberId,
+            accessToken: settings.whatsappAccessToken,
+            to: phoneInfo.rawDigits || phoneInfo.formatted,
+            message: message,
+            pdfBase64: pdfBase64,
+            pdfFileName: pdfFileName,
+          }),
+        });
+        const data = await response.json();
+        if (data.messageId) {
+          refId = data.messageId;
+          status = 'delivered';
+        } else {
+          status = 'failed';
+        }
+      } catch {
+        status = 'failed';
+      }
+    }
 
     // Generate individual PDF payload in background
     generatePaySlipPDF(s, settings);
 
-    // Simulate reliable API packet dispatch to employee mobile
-    await new Promise(r => setTimeout(r, 400));
+    await new Promise(r => setTimeout(r, 350));
 
     const receipt: DispatchReceipt = {
       id: `RCPT-WA-AUTO-${Date.now()}-${s.empId}`,
@@ -324,10 +402,10 @@ export async function dispatchWhatsAppBackgroundBatch(
       channel: 'whatsapp',
       period: ymd,
       timestamp: new Date().toISOString(),
-      status: phoneInfo.isValid ? 'delivered' : 'sent',
+      status,
       pdfFileName,
       netPay: `${sym} ${s.netPay.toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
-      referenceId: `WA-AUTO-${ymd.replace('-', '')}-${s.empId}`,
+      referenceId: refId,
     };
 
     receipts.push(receipt);

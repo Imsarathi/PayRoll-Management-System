@@ -576,7 +576,6 @@ export const HistoricalPayslipModal: React.FC<HistoricalPayslipModalProps> = ({
                       <th className="p-3.5 text-right">Gross Pay</th>
                       <th className="p-3.5 text-right">Deductions</th>
                       <th className="p-3.5 text-right">Net Salary</th>
-                      <th className="p-3.5">Payment Method</th>
                       <th className="p-3.5 text-center">Status</th>
                       <th className="p-3.5 text-right">Actions</th>
                     </tr>
@@ -626,21 +625,6 @@ export const HistoricalPayslipModal: React.FC<HistoricalPayslipModalProps> = ({
                         {/* Net Salary */}
                         <td className="p-3.5 text-right font-extrabold text-emerald-700 bg-emerald-50/30">
                           {sym} {(record.netPay ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                        </td>
-
-                        {/* Payment Method */}
-                        <td className="p-3.5">
-                          <div className="text-slate-700 capitalize font-medium flex items-center space-x-1">
-                            {record.paymentMethod === 'cash' ? <Banknote className="w-3.5 h-3.5 text-emerald-600" /> :
-                             record.paymentMethod === 'upi' ? <Smartphone className="w-3.5 h-3.5 text-purple-600" /> :
-                             <Landmark className="w-3.5 h-3.5 text-blue-600" />}
-                            <span>{record.paymentMethod ? record.paymentMethod.replace('_', ' ') : 'Bank Transfer'}</span>
-                          </div>
-                          {record.paymentReference && (
-                            <div className="text-[10px] text-slate-400 font-mono truncate max-w-[130px]" title={record.paymentReference}>
-                              Ref: {record.paymentReference}
-                            </div>
-                          )}
                         </td>
 
                         {/* Status */}
@@ -1044,49 +1028,22 @@ export const HistoricalPayslipModal: React.FC<HistoricalPayslipModalProps> = ({
               </div>
             </div>
 
-            {/* Section 5: Payment & Transaction Details */}
+            {/* Section 5: Statement Notes & Remarks */}
             <div className="p-4 bg-white border border-slate-200 rounded-xl space-y-3 shadow-2xs">
               <div className="flex items-center space-x-2 border-b border-slate-100 pb-2">
                 <CheckCircle2 className="w-4 h-4 text-indigo-600" />
-                <h3 className="font-bold text-slate-900 text-xs">5. Payment Advice & References</h3>
+                <h3 className="font-bold text-slate-900 text-xs">5. Statement Notes & Remarks</h3>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-slate-700 font-bold mb-1">Payment Method</label>
-                  <select
-                    value={singleForm.paymentMethod}
-                    onChange={(e) => setSingleForm(prev => ({ ...prev, paymentMethod: e.target.value as PaymentMethod }))}
-                    className="w-full p-2 bg-white border border-slate-300 rounded-lg text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 cursor-pointer"
-                  >
-                    <option value="bank_transfer">🏦 Bank Transfer / Direct Deposit</option>
-                    <option value="upi">⚡ UPI Instant Transfer</option>
-                    <option value="cheque">📝 Bank Cheque</option>
-                    <option value="cash">💵 Cash In Hand</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-slate-700 font-bold mb-1">Payment Reference / UTR Number</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. ACH-202607-AGT1001"
-                    value={singleForm.paymentReference}
-                    onChange={(e) => setSingleForm(prev => ({ ...prev, paymentReference: e.target.value }))}
-                    className="w-full p-2 bg-white border border-slate-300 rounded-lg text-xs font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-slate-700 font-bold mb-1">Remarks / Statement Notes</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Approved and disbursed"
-                    value={singleForm.remarks}
-                    onChange={(e) => setSingleForm(prev => ({ ...prev, remarks: e.target.value }))}
-                    className="w-full p-2 bg-white border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                  />
-                </div>
+              <div>
+                <label className="block text-slate-700 font-bold mb-1">Remarks / Statement Notes</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Approved and archived historical payslip"
+                  value={singleForm.remarks}
+                  onChange={(e) => setSingleForm(prev => ({ ...prev, remarks: e.target.value }))}
+                  className="w-full p-2 bg-white border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                />
               </div>
             </div>
 

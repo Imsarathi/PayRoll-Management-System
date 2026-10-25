@@ -67,7 +67,6 @@ export const PayrollGrid: React.FC<PayrollGridProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDept, setSelectedDept] = useState('ALL');
   const [selectedStructure, setSelectedStructure] = useState('ALL');
-  const [selectedPaymentMode, setSelectedPaymentMode] = useState('ALL');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   // Modal confirmation states (replacing window.confirm which is blocked in iFrame sandboxes)
@@ -87,9 +86,8 @@ export const PayrollGrid: React.FC<PayrollGridProps> = ({
 
     const matchesDept = selectedDept === 'ALL' || s.profile.department === selectedDept;
     const matchesStructure = selectedStructure === 'ALL' || s.profile.structureType === selectedStructure;
-    const matchesPaymentMode = selectedPaymentMode === 'ALL' || (s.paymentMethod || 'bank_transfer') === selectedPaymentMode;
 
-    return matchesSearch && matchesDept && matchesStructure && matchesPaymentMode;
+    return matchesSearch && matchesDept && matchesStructure;
   });
 
   const handleSelectAll = () => {
@@ -163,23 +161,6 @@ export const PayrollGrid: React.FC<PayrollGridProps> = ({
             </select>
           </div>
 
-          {/* Payment Mode Filter (Bank vs Cash) */}
-          <div className="flex items-center space-x-1.5 bg-white border border-slate-300 px-2.5 py-1.5 rounded-md text-xs">
-            <span className="text-slate-500 font-medium">Payment Mode:</span>
-            <select
-              id="filter-payment-mode-select"
-              value={selectedPaymentMode}
-              onChange={(e) => setSelectedPaymentMode(e.target.value)}
-              className="bg-transparent text-slate-800 font-semibold focus:outline-none cursor-pointer"
-            >
-              <option value="ALL">All Modes (Bank & Cash)</option>
-              <option value="bank_transfer">🏦 Direct Bank Transfer</option>
-              <option value="cash">💵 Paid by Cash</option>
-              <option value="upi">📱 UPI / Mobile</option>
-              <option value="cheque">📝 Cheque</option>
-            </select>
-          </div>
-
           {/* Add Employee Action */}
           {onOpenAddEmployee && currentRole !== 'employee' && (
             <button
@@ -215,26 +196,6 @@ export const PayrollGrid: React.FC<PayrollGridProps> = ({
             {selectedIds.size} {selectedIds.size === 1 ? 'employee' : 'employees'} selected
           </span>
           <div className="flex flex-wrap items-center gap-2">
-            {onBulkSetPaymentMethod && (
-              <>
-                <button
-                  onClick={() => onBulkSetPaymentMethod(Array.from(selectedIds), 'cash')}
-                  className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-2xs transition inline-flex items-center space-x-1 cursor-pointer"
-                  title="Mark selected as Paid by Cash"
-                >
-                  <Banknote className="w-3.5 h-3.5" />
-                  <span>Set Mode: Paid by Cash</span>
-                </button>
-                <button
-                  onClick={() => onBulkSetPaymentMethod(Array.from(selectedIds), 'bank_transfer')}
-                  className="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-2xs transition inline-flex items-center space-x-1 cursor-pointer"
-                  title="Mark selected as Bank Transfer"
-                >
-                  <Landmark className="w-3.5 h-3.5" />
-                  <span>Set Mode: Bank Transfer</span>
-                </button>
-              </>
-            )}
 
             <button
               onClick={() => onBulkApprove(Array.from(selectedIds))}
@@ -271,7 +232,6 @@ export const PayrollGrid: React.FC<PayrollGridProps> = ({
               <th className="p-3">Employee</th>
               <th className="p-3">Department & Role</th>
               <th className="p-3 text-center">Attendance</th>
-              <th className="p-3 text-center">Payment Mode</th>
               <th className="p-3 text-right">Basic Pay</th>
               <th className="p-3 text-right">Overtime</th>
               <th className="p-3 text-right">Gross Earnings</th>
@@ -284,7 +244,7 @@ export const PayrollGrid: React.FC<PayrollGridProps> = ({
           <tbody className="divide-y divide-slate-200 bg-white">
             {filteredSalaries.length === 0 ? (
               <tr>
-                <td colSpan={12} className="p-8 text-center text-slate-400">
+                <td colSpan={11} className="p-8 text-center text-slate-400">
                   No employee payroll records found matching your filters.
                 </td>
               </tr>
@@ -360,61 +320,6 @@ export const PayrollGrid: React.FC<PayrollGridProps> = ({
                           <span className="text-amber-600">{s.attendance.lateArrivalsCount} Late</span>
                         )}
                       </div>
-                    </td>
-
-                    {/* Payment Mode (Bank Transfer vs Cash vs UPI vs Cheque) */}
-                    <td className="p-3 text-center">
-                      {onUpdatePaymentMethod && currentRole !== 'employee' ? (
-                        <div className="inline-flex flex-col items-center">
-                          <select
-                            value={s.paymentMethod || 'bank_transfer'}
-                            onChange={(e) => onUpdatePaymentMethod(s.empId, e.target.value as PaymentMethod)}
-                            className={`text-[11px] font-bold px-2 py-0.5 rounded-lg border focus:outline-none cursor-pointer transition ${
-                              (s.paymentMethod || 'bank_transfer') === 'cash'
-                                ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
-                                : (s.paymentMethod || 'bank_transfer') === 'upi'
-                                ? 'bg-purple-50 text-purple-800 border-purple-300 hover:bg-purple-100'
-                                : (s.paymentMethod || 'bank_transfer') === 'cheque'
-                                ? 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100'
-                                : 'bg-blue-50 text-blue-800 border-blue-200 hover:bg-blue-100'
-                            }`}
-                            title="Click to switch Payment Mode (Bank / Cash / UPI / Cheque)"
-                          >
-                            <option value="bank_transfer">🏦 Bank</option>
-                            <option value="cash">💵 Cash</option>
-                            <option value="upi">📱 UPI</option>
-                            <option value="cheque">📝 Cheque</option>
-                          </select>
-                          {(s.paymentMethod || 'bank_transfer') === 'cash' ? (
-                            <span className="text-[9.5px] text-emerald-700 font-semibold mt-0.5">Paid in Cash</span>
-                          ) : (
-                            <span className="text-[9.5px] text-slate-400 font-medium mt-0.5 truncate max-w-[85px]" title={s.profile.bankName}>
-                              {s.profile.bankName ? s.profile.bankName.split(' ')[0] : 'Bank'}
-                            </span>
-                          )}
-                        </div>
-                      ) : (
-                        <div>
-                          <span className={`inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10.5px] font-bold ${
-                            (s.paymentMethod || 'bank_transfer') === 'cash'
-                              ? 'bg-emerald-100 text-emerald-800'
-                              : (s.paymentMethod || 'bank_transfer') === 'upi'
-                              ? 'bg-purple-100 text-purple-800'
-                              : (s.paymentMethod || 'bank_transfer') === 'cheque'
-                              ? 'bg-amber-100 text-amber-800'
-                              : 'bg-blue-100 text-blue-800'
-                          }`}>
-                            {(s.paymentMethod || 'bank_transfer') === 'cash' ? '💵 Cash' :
-                             (s.paymentMethod || 'bank_transfer') === 'upi' ? '📱 UPI' :
-                             (s.paymentMethod || 'bank_transfer') === 'cheque' ? '📝 Cheque' : '🏦 Bank'}
-                          </span>
-                          {(s.paymentMethod || 'bank_transfer') === 'cash' ? (
-                            <div className="text-[9.5px] text-emerald-700 font-medium mt-0.5">Paid by Cash</div>
-                          ) : (
-                            <div className="text-[9.5px] text-slate-400 font-medium mt-0.5">Direct Deposit</div>
-                          )}
-                        </div>
-                      )}
                     </td>
 
                     {/* Basic Pay */}

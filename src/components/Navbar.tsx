@@ -8,7 +8,9 @@ import {
   Calendar,
   Users,
   History,
-  Send
+  Send,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { UserRole, CompanySettings } from '../types/payroll';
 
@@ -43,6 +45,28 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenDispatchEngine,
   employeeCount,
 }) => {
+  const handlePrevMonth = () => {
+    const parts = selectedMonth.split('-');
+    if (parts.length === 2) {
+      const y = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10);
+      const prevDate = new Date(y, m - 2, 1);
+      const newMonth = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`;
+      setSelectedMonth(newMonth);
+    }
+  };
+
+  const handleNextMonth = () => {
+    const parts = selectedMonth.split('-');
+    if (parts.length === 2) {
+      const y = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10);
+      const nextDate = new Date(y, m, 1);
+      const newMonth = `${nextDate.getFullYear()}-${String(nextDate.getMonth() + 1).padStart(2, '0')}`;
+      setSelectedMonth(newMonth);
+    }
+  };
+
   return (
     <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -79,9 +103,17 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Center Navigation: Month & Template */}
           <div className="hidden md:flex items-center space-x-3">
-            <div className="flex items-center space-x-2 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-md text-xs font-medium text-slate-600">
-              <Calendar className="w-3.5 h-3.5 text-blue-600" />
-              <span className="text-slate-400">Pay Cycle:</span>
+            <div className="flex items-center space-x-1 bg-slate-50 border border-slate-200 px-2 py-1.5 rounded-md text-xs font-medium text-slate-600">
+              <button
+                type="button"
+                onClick={handlePrevMonth}
+                title="Previous Month"
+                className="p-1 hover:bg-slate-200 rounded text-slate-500 hover:text-slate-800 transition cursor-pointer"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+              </button>
+              <Calendar className="w-3.5 h-3.5 text-blue-600 mx-0.5" />
+              <span className="text-slate-400 font-normal">Month:</span>
               <input
                 type="month"
                 id="pay-period-input"
@@ -91,9 +123,17 @@ export const Navbar: React.FC<NavbarProps> = ({
                     setSelectedMonth(e.target.value);
                   }
                 }}
-                className="bg-transparent text-slate-900 font-semibold focus:outline-none cursor-pointer text-xs"
+                className="bg-transparent text-slate-900 font-bold focus:outline-none cursor-pointer text-xs"
                 title="Select any custom month and year for pay cycle"
               />
+              <button
+                type="button"
+                onClick={handleNextMonth}
+                title="Next Month"
+                className="p-1 hover:bg-slate-200 rounded text-slate-500 hover:text-slate-800 transition cursor-pointer"
+              >
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
             </div>
 
             {onOpenEmployeeDirectory && currentRole !== 'employee' && (

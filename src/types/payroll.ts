@@ -35,6 +35,11 @@ export interface CompanySettings {
   signatureType?: 'upload' | 'draw' | 'preset';
   showDigitalSignature?: boolean;
   signatureTimestamp?: boolean;
+
+  // WhatsApp Dispatch Gateway
+  whatsappProvider?: 'meta' | 'web_assist';
+  whatsappPhoneNumberId?: string;
+  whatsappAccessToken?: string;
 }
 
 export interface EmployeeProfile {
@@ -89,23 +94,27 @@ export interface AttendanceRecord {
   manualConveyance?: number;
   manualDa?: number; // Dearness Allowance
   manualSpecialAllowance?: number;
+  manualOtherAllowance?: number; // Other Allowance from Excel
   manualMedicalAllowance?: number;
   manualOvertimePay?: number;
   manualIncentiveBonus?: number;
   manualReimbursements?: number;
+  manualGrossSalary?: number; // Direct Gross Salary override from Excel
   manualPf?: number; // Provident Fund deduction override
   manualPt?: number; // Professional Tax deduction override
   manualLopDeduction?: number; // Loss of Pay deduction override
   manualLateDeduction?: number; // Late arrival penalty override
   manualLoanAdvance?: number; // Loan / Salary Advance deduction override
   manualOtherDeductions?: number;
+  manualTotalDeduction?: number; // Direct Total Deduction override from Excel
+  manualNetPay?: number; // Direct Net Pay override from Excel
 }
 
 export interface SalaryBreakdown {
   id: string;
   empId: string;
-  month: string; // e.g. "2026-08"
-  periodLabel: string; // e.g. "August 2026"
+  month: string; // e.g. "2026-08" or "2026-06"
+  periodLabel: string; // e.g. "June 2026"
   profile: EmployeeProfile;
   attendance: AttendanceRecord;
   
@@ -118,9 +127,10 @@ export interface SalaryBreakdown {
   basicPay: number;
   hra: number; // House Rent Allowance (e.g. 40% of basic)
   dearnessAllowance: number; // Dearness Allowance (DA)
+  specialAllowance: number;
+  otherAllowance?: number; // Other Allowance
   conveyanceAllowance: number;
   medicalAllowance: number;
-  specialAllowance: number;
   overtimePay: number;
   holidayWorkPay: number;
   performanceBonus: number;
@@ -176,10 +186,12 @@ export interface ColumnMapping {
   conveyance?: string;
   da?: string; // Dearness Allowance
   specialAllowance?: string;
+  otherAllowance?: string; // Other Allowance
   medicalAllowance?: string;
   overtimePay?: string;
   incentiveBonus?: string;
   reimbursements?: string;
+  grossSalary?: string; // Gross Salary
 
   // Deductions columns
   providentFund?: string; // PF
@@ -188,6 +200,8 @@ export interface ColumnMapping {
   lateDeduction?: string; // Late penalty amount
   loanAdvance?: string; // Loan / Salary Advance
   otherDeductions?: string;
+  totalDeduction?: string; // Total Deduction
+  netPay?: string; // Net Pay
 }
 
 export interface AuditLog {

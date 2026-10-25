@@ -737,128 +737,6 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
               </div>
             </div>
 
-            {/* Payment Method & Disbursal Mode */}
-            <div className="pt-2 border-t border-slate-200">
-              <h3 className="font-bold text-slate-900 text-xs mb-2.5 flex items-center space-x-1.5">
-                <Banknote className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Disbursal & Payment Mode</span>
-              </h3>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, preferredPaymentMethod: 'bank_transfer' })}
-                  className={`p-2.5 rounded-lg border text-left flex flex-col justify-between transition cursor-pointer ${
-                    formData.preferredPaymentMethod === 'bank_transfer'
-                      ? 'border-blue-600 bg-blue-50/70 text-blue-900 ring-1 ring-blue-600'
-                      : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700'
-                  }`}
-                >
-                  <Landmark className="w-4 h-4 text-blue-600 mb-1" />
-                  <div>
-                    <div className="font-bold text-xs">Bank Transfer</div>
-                    <div className="text-[10px] text-slate-500">Direct Deposit / NEFT</div>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, preferredPaymentMethod: 'cash' })}
-                  className={`p-2.5 rounded-lg border text-left flex flex-col justify-between transition cursor-pointer ${
-                    formData.preferredPaymentMethod === 'cash'
-                      ? 'border-emerald-600 bg-emerald-50/70 text-emerald-900 ring-1 ring-emerald-600'
-                      : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700'
-                  }`}
-                >
-                  <Banknote className="w-4 h-4 text-emerald-600 mb-1" />
-                  <div>
-                    <div className="font-bold text-xs">Paid by Cash</div>
-                    <div className="text-[10px] text-slate-500">Physical Cash Handover</div>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, preferredPaymentMethod: 'upi' })}
-                  className={`p-2.5 rounded-lg border text-left flex flex-col justify-between transition cursor-pointer ${
-                    formData.preferredPaymentMethod === 'upi'
-                      ? 'border-purple-600 bg-purple-50/70 text-purple-900 ring-1 ring-purple-600'
-                      : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700'
-                  }`}
-                >
-                  <Smartphone className="w-4 h-4 text-purple-600 mb-1" />
-                  <div>
-                    <div className="font-bold text-xs">UPI / Mobile</div>
-                    <div className="text-[10px] text-slate-500">Instant Digital Pay</div>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, preferredPaymentMethod: 'cheque' })}
-                  className={`p-2.5 rounded-lg border text-left flex flex-col justify-between transition cursor-pointer ${
-                    formData.preferredPaymentMethod === 'cheque'
-                      ? 'border-amber-600 bg-amber-50/70 text-amber-900 ring-1 ring-amber-600'
-                      : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700'
-                  }`}
-                >
-                  <FileText className="w-4 h-4 text-amber-600 mb-1" />
-                  <div>
-                    <div className="font-bold text-xs">Cheque</div>
-                    <div className="text-[10px] text-slate-500">Paper Cheque Voucher</div>
-                  </div>
-                </button>
-              </div>
-
-              {formData.preferredPaymentMethod !== 'cash' && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
-                  <div>
-                    <label className="font-semibold text-slate-700 block mb-1">Bank Name</label>
-                    <input
-                      type="text"
-                      value={formData.bankName}
-                      onChange={(e) => setFormData({ ...formData, bankName: e.target.value })}
-                      placeholder="e.g. JPMorgan Chase / HDFC Bank"
-                      className="w-full font-medium bg-slate-50 border border-slate-300 rounded-lg p-2 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="font-semibold text-slate-700 block mb-1">Account Number / UPI ID</label>
-                    <input
-                      type="text"
-                      value={formData.accountNumber}
-                      onChange={(e) => setFormData({ ...formData, accountNumber: e.target.value })}
-                      placeholder="e.g. 4829103948 or user@upi"
-                      className="w-full font-medium bg-slate-50 border border-slate-300 rounded-lg p-2 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="font-semibold text-slate-700 block mb-1">IFSC / Routing Code</label>
-                    <input
-                      type="text"
-                      value={formData.routingOrIfsc}
-                      onChange={(e) => setFormData({ ...formData, routingOrIfsc: e.target.value })}
-                      placeholder="e.g. HDFC0001234 or CHASUS33"
-                      className="w-full font-medium bg-slate-50 border border-slate-300 rounded-lg p-2 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="font-semibold text-slate-700 block mb-1">PF Account Number</label>
-                    <input
-                      type="text"
-                      value={formData.pfAccountNumber || ''}
-                      onChange={(e) => setFormData({ ...formData, pfAccountNumber: e.target.value })}
-                      placeholder="e.g. MH/BAN/0012345/000/0001"
-                      className="w-full font-medium bg-slate-50 border border-slate-300 rounded-lg p-2 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-
             {/* Footer */}
             <div className="pt-4 border-t border-slate-200 flex items-center justify-between">
               <button
@@ -1023,9 +901,6 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
                       <th className="p-2.5 min-w-[120px]">Joining Date</th>
                       <th className="p-2.5 min-w-[95px]">Structure</th>
                       <th className="p-2.5 min-w-[105px]">Base Salary ({sym}) <span className="text-rose-500">*</span></th>
-                      <th className="p-2.5 min-w-[115px]">Payment Mode</th>
-                      <th className="p-2.5 min-w-[115px]">Account / Note</th>
-                      <th className="p-2.5 min-w-[115px]">PF Account No</th>
                       <th className="p-2.5 w-10 text-center">Action</th>
                     </tr>
                   </thead>
@@ -1164,48 +1039,6 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
                               }}
                               placeholder="15000"
                               className="w-full text-xs font-bold text-slate-800 bg-white border border-slate-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                            />
-                          </td>
-
-                          {/* Payment Method */}
-                          <td className="p-2">
-                            <select
-                              value={row.preferredPaymentMethod}
-                              onChange={(e) => updateBulkRow(row.id, 'preferredPaymentMethod', e.target.value as PaymentMethod)}
-                              className={`w-full text-xs font-medium rounded px-1.5 py-1 border focus:outline-none focus:ring-1 ${
-                                row.preferredPaymentMethod === 'cash'
-                                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
-                                  : row.preferredPaymentMethod === 'upi'
-                                  ? 'bg-purple-50 text-purple-800 border-purple-300'
-                                  : 'bg-slate-50 text-slate-800 border-slate-300'
-                              }`}
-                            >
-                              <option value="bank_transfer">🏦 Bank</option>
-                              <option value="cash">💵 Cash</option>
-                              <option value="upi">📱 UPI</option>
-                              <option value="cheque">📝 Cheque</option>
-                            </select>
-                          </td>
-
-                          {/* Account / Note */}
-                          <td className="p-2">
-                            <input
-                              type="text"
-                              value={row.accountNumber}
-                              onChange={(e) => updateBulkRow(row.id, 'accountNumber', e.target.value)}
-                              placeholder={row.preferredPaymentMethod === 'cash' ? 'Cash Counter' : 'Account / UPI'}
-                              className="w-full text-xs bg-slate-50 border border-slate-200 rounded px-2 py-1 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-                            />
-                          </td>
-
-                          {/* PF Account No */}
-                          <td className="p-2">
-                            <input
-                              type="text"
-                              value={row.pfAccountNumber || ''}
-                              onChange={(e) => updateBulkRow(row.id, 'pfAccountNumber', e.target.value)}
-                              placeholder="e.g. MH/BAN/..."
-                              className="w-full text-xs bg-slate-50 border border-slate-200 rounded px-2 py-1 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
                             />
                           </td>
 
