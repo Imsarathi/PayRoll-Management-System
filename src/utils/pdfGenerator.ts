@@ -118,10 +118,10 @@ export function generatePaySlipPDF(salary: SalaryBreakdown, settings: CompanySet
       { content: `${salary.profile.dob ? `DOB: ${salary.profile.dob} | ` : ''}Joined: ${salary.profile.joinDate || 'N/A'}`, styles: { fontStyle: 'normal', textColor: [15, 23, 42] } },
     ],
     [
-      { content: 'Payment Mode:', styles: { fontStyle: 'bold', textColor: [100, 116, 139] } },
-      { content: paymentModeLabel, styles: { fontStyle: 'normal', textColor: [15, 23, 42] } },
-      { content: isCash ? 'Voucher Ref #:' : isUpi ? 'UPI ID / Ref:' : 'Bank Account / PF:', styles: { fontStyle: 'bold', textColor: [100, 116, 139] } },
-      { content: isCash ? voucherRef : isUpi ? voucherRef : `${salary.profile.accountNumber || 'N/A'}${salary.profile.pfAccountNumber ? ` (PF: ${salary.profile.pfAccountNumber})` : ''}`, styles: { fontStyle: 'normal', textColor: [15, 23, 42] } },
+      { content: 'Base Monthly Salary:', styles: { fontStyle: 'bold', textColor: [100, 116, 139] } },
+      { content: `${symbol} ${(salary.profile.baseSalary || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`, styles: { fontStyle: 'normal', textColor: [15, 23, 42] } },
+      { content: 'Pay Period:', styles: { fontStyle: 'bold', textColor: [100, 116, 139] } },
+      { content: salary.periodLabel, styles: { fontStyle: 'normal', textColor: [15, 23, 42] } },
     ],
   ];
 
@@ -143,35 +143,28 @@ export function generatePaySlipPDF(salary: SalaryBreakdown, settings: CompanySet
     margin: { left: leftMargin, right: leftMargin },
   });
 
-  // 3. Attendance Overview Bar with Late Marks & O.T. Hrs
+  // 3. Attendance Overview Bar (Strictly Total Present Count Only)
   const attendanceStartY = (doc as any).lastAutoTable.finalY + 2.5;
   const attendanceData = [
     [
-      `Total Days: ${salary.totalDays}`,
-      `Present: ${salary.attendance.daysPresent}`,
-      `Paid Leave: ${salary.attendance.paidLeaves}`,
-      `Half-Days: ${salary.attendance.halfDays}`,
-      `LOP (Unpaid): ${salary.lossOfPayDays}`,
-      `Late Marks: ${salary.attendance.lateArrivalsCount || 0}`,
-      `Payable Days: ${salary.payableDays}`,
-      `O.T. Hrs: ${salary.attendance.overtimeHours || 0}h`,
+      { content: 'Attendance Record:', styles: { fontStyle: 'bold', halign: 'left', textColor: [100, 116, 139] } },
+      { content: `Total Present Days: ${salary.attendance.daysPresent} Days`, styles: { fontStyle: 'bold', halign: 'right', textColor: [22, 101, 52] } },
     ],
   ];
 
   autoTable(doc, {
-    body: attendanceData,
+    body: attendanceData as any,
     startY: attendanceStartY,
-    theme: 'grid',
+    theme: 'plain',
     tableWidth: contentWidth,
     styles: {
-      fontSize: 6.8,
-      fontStyle: 'bold',
-      halign: 'center',
-      fillColor: [241, 245, 249],
-      textColor: [30, 41, 59],
-      lineColor: [203, 213, 225],
-      lineWidth: 0.2,
-      cellPadding: 1.4,
+      fontSize: 7.5,
+      cellPadding: 1.5,
+      fillColor: [248, 250, 252],
+    },
+    columnStyles: {
+      0: { cellWidth: 50 },
+      1: { cellWidth: contentWidth - 50 },
     },
     margin: { left: leftMargin, right: leftMargin },
   });
@@ -179,72 +172,89 @@ export function generatePaySlipPDF(salary: SalaryBreakdown, settings: CompanySet
   // 4. Earnings vs Deductions Dual Table
   const tableStartY = (doc as any).lastAutoTable.finalY + 3.5;
   const incentiveBonus = (salary.performanceBonus || 0) + (salary.reimbursements || 0) + (salary.holidayWorkPay || 0);
-  const loanAdvances = (salary.loanAdvance || 0) + (salary.otherDeductions || 0);
 
-  const earningsRows = [
+  const earningsRows: string[][] = [
     ['Basic Salary', `${symbol} ${(salary.basicPay ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`],
     ['House Rent Allowance (HRA)', `${symbol} ${(salary.hra ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`],
-    ['Dearness Allowance', `${symbol} ${(salary.dearnessAllowance ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`],
+    ['Dearness Allowance (D.A.)', `${symbol} ${(salary.dearnessAllowance ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`],
     ['Special Allowance', `${symbol} ${(salary.specialAllowance ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`],
-    ['Overtime Pay (O.T.)', `${symbol} ${(salary.overtimePay ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`],
-    ['Incentive & Bonus', `${symbol} ${incentiveBonus.toLocaleString('en-US', { minimumFractionDigits: 2 })}`],
-    ['Total Gross Earnings', `${symbol} ${(salary.grossEarnings ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`],
   ];
 
-  const deductionsRows = [
-    ['Provident Fund (PF)', `${symbol} ${(salary.providentFund ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`],
-    ['Professional Tax (PT)', `${symbol} ${(salary.professionalTax ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`],
-    [`Loss of Pay (LOP Deductions)${salary.lossOfPayDays > 0 ? ` (${salary.lossOfPayDays}d)` : ''}`, `${symbol} ${(salary.lossOfPayDeduction ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`],
-    ['Late Arrival Penalty', `${symbol} ${(salary.lateDeduction ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`],
-    ['Loan & Salary Advances', `${symbol} ${loanAdvances.toLocaleString('en-US', { minimumFractionDigits: 2 })}`],
-    ['Total Deductions', `${symbol} ${(salary.totalDeductions ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`],
-  ];
+  if (salary.otherAllowance && salary.otherAllowance > 0) {
+    earningsRows.push(['Other Allowance', `${symbol} ${(salary.otherAllowance ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`]);
+  }
+
+  earningsRows.push(['Overtime Pay (O.T.)', `${symbol} ${(salary.overtimePay ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`]);
+
+  if (incentiveBonus > 0) {
+    earningsRows.push(['Incentive & Bonus', `${symbol} ${incentiveBonus.toLocaleString('en-US', { minimumFractionDigits: 2 })}`]);
+  }
+
+  earningsRows.push(['Total Gross Earnings', `${symbol} ${(salary.grossEarnings ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`]);
+
+  const deductionsRows: string[][] = [];
+
+  if (salary.providentFund > 0) {
+    deductionsRows.push(['Provident Fund (PF)', `${symbol} ${(salary.providentFund ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`]);
+  }
+  if (salary.professionalTax > 0) {
+    deductionsRows.push(['Professional Tax (PT)', `${symbol} ${(salary.professionalTax ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`]);
+  }
+
+  deductionsRows.push(['Loan / Advance', `${symbol} ${(salary.loanAdvance ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`]);
+  deductionsRows.push(['Other Deductions', `${symbol} ${(salary.otherDeductions ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`]);
+  deductionsRows.push(['Total Deductions', `${symbol} ${(salary.totalDeductions ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`]);
 
   const combinedTableBody: any[] = [];
-  const maxRows = Math.max(earningsRows.length, deductionsRows.length);
+  const earnItems = earningsRows.slice(0, -1);
+  const earnTotal = earningsRows[earningsRows.length - 1];
+  const dedItems = deductionsRows.slice(0, -1);
+  const dedTotal = deductionsRows[deductionsRows.length - 1];
+  const maxItems = Math.max(earnItems.length, dedItems.length);
 
-  for (let i = 0; i < maxRows; i++) {
-    const earn = earningsRows[i] || ['', ''];
-    const ded = deductionsRows[i] || ['', ''];
-    const isTotalRow = i === maxRows - 1;
+  for (let i = 0; i < maxItems; i++) {
+    const earn = earnItems[i] || ['', ''];
+    const ded = dedItems[i] || ['', ''];
 
     combinedTableBody.push([
       {
         content: earn[0],
-        styles: { 
-          fontStyle: isTotalRow ? 'bold' : 'normal', 
-          fillColor: isTotalRow ? [239, 246, 255] : undefined,
-          textColor: isTotalRow ? [30, 58, 138] : [30, 41, 59]
-        },
+        styles: { fontStyle: 'normal', textColor: [30, 41, 59] },
       },
       {
         content: earn[1],
-        styles: { 
-          halign: 'right', 
-          fontStyle: isTotalRow ? 'bold' : 'normal', 
-          fillColor: isTotalRow ? [239, 246, 255] : undefined,
-          textColor: isTotalRow ? [30, 58, 138] : [15, 23, 42]
-        },
+        styles: { halign: 'right', fontStyle: 'normal', textColor: [15, 23, 42] },
       },
       {
         content: ded[0],
-        styles: { 
-          fontStyle: isTotalRow ? 'bold' : 'normal', 
-          fillColor: isTotalRow ? [255, 241, 242] : undefined,
-          textColor: isTotalRow ? [153, 27, 27] : [30, 41, 59]
-        },
+        styles: { fontStyle: 'normal', textColor: [30, 41, 59] },
       },
       {
         content: ded[1],
-        styles: { 
-          halign: 'right', 
-          fontStyle: isTotalRow ? 'bold' : 'normal', 
-          fillColor: isTotalRow ? [255, 241, 242] : undefined,
-          textColor: isTotalRow ? [153, 27, 27] : [15, 23, 42]
-        },
+        styles: { halign: 'right', fontStyle: 'normal', textColor: [15, 23, 42] },
       },
     ]);
   }
+
+  // Bottom Total Row
+  combinedTableBody.push([
+    {
+      content: earnTotal[0],
+      styles: { fontStyle: 'bold', fillColor: [239, 246, 255], textColor: [30, 58, 138] },
+    },
+    {
+      content: earnTotal[1],
+      styles: { halign: 'right', fontStyle: 'bold', fillColor: [239, 246, 255], textColor: [30, 58, 138] },
+    },
+    {
+      content: dedTotal[0],
+      styles: { fontStyle: 'bold', fillColor: [255, 241, 242], textColor: [153, 27, 27] },
+    },
+    {
+      content: dedTotal[1],
+      styles: { halign: 'right', fontStyle: 'bold', fillColor: [255, 241, 242], textColor: [153, 27, 27] },
+    },
+  ]);
 
   autoTable(doc, {
     head: [

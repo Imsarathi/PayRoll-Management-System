@@ -247,76 +247,16 @@ export const PaySlipModal: React.FC<PaySlipModalProps> = ({
                   {sym} {((salary.profile.baseSalary || 0)).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </div>
               </div>
-
-              <div>
-                <div className="text-[10px] uppercase font-bold text-slate-400">Bank / Mode</div>
-                <div className="text-xs font-medium text-slate-800 mt-0.5">
-                  {isCash ? 'Physical Cash' : isUpi ? 'UPI Payment' : (salary.profile.bankName || 'Direct Bank')}
-                </div>
-              </div>
-
-              <div>
-                <div className="text-[10px] uppercase font-bold text-slate-400">
-                  {isCash ? 'Voucher Ref #' : isUpi ? 'UPI ID / Ref' : 'Bank Account #'}
-                </div>
-                <div className="text-xs font-mono font-semibold text-slate-800 mt-0.5 truncate" title={voucherRef}>
-                  {isCash ? voucherRef : isUpi ? voucherRef : (salary.profile.accountNumber || 'N/A')}
-                </div>
-              </div>
-
-              <div>
-                <div className="text-[10px] uppercase font-bold text-slate-400">PF Account No</div>
-                <div className="text-xs font-mono text-slate-800 mt-0.5">{salary.profile.pfAccountNumber || 'N/A'}</div>
-              </div>
-
-              <div>
-                <div className="text-[10px] uppercase font-bold text-slate-400">IFSC / Branch Code</div>
-                <div className="text-xs font-mono text-slate-800 mt-0.5">
-                  {isCash ? 'N/A' : (salary.profile.routingOrIfsc || 'N/A')}
-                </div>
-              </div>
-
-              <div>
-                <div className="text-[10px] uppercase font-bold text-slate-400">Payment Mode</div>
-                <div className="text-xs font-semibold text-slate-800 mt-0.5 uppercase">
-                  {isCash ? 'Cash' : isUpi ? 'UPI' : isCheque ? 'Cheque' : 'Bank Transfer'}
-                </div>
-              </div>
             </div>
 
-            {/* 3. Attendance & Payable Matrix Banner */}
-            <div className="bg-slate-100/90 rounded-md p-2.5 border border-slate-200 grid grid-cols-4 sm:grid-cols-8 gap-2 text-center text-xs">
-              <div className="border-r border-slate-200 last:border-0 pr-1">
-                <span className="text-[10px] text-slate-500 block">Total Days</span>
-                <span className="font-bold text-slate-900">{salary.totalDays}</span>
-              </div>
-              <div className="border-r border-slate-200 last:border-0 pr-1">
-                <span className="text-[10px] text-slate-500 block">Present</span>
-                <span className="font-bold text-emerald-700">{salary.attendance.daysPresent}</span>
-              </div>
-              <div className="border-r border-slate-200 last:border-0 pr-1">
-                <span className="text-[10px] text-slate-500 block">Paid Leaves</span>
-                <span className="font-bold text-slate-800">{salary.attendance.paidLeaves}</span>
-              </div>
-              <div className="border-r border-slate-200 last:border-0 pr-1">
-                <span className="text-[10px] text-slate-500 block">Half Days</span>
-                <span className="font-bold text-slate-800">{salary.attendance.halfDays}</span>
-              </div>
-              <div className="border-r border-slate-200 last:border-0 pr-1">
-                <span className="text-[10px] text-slate-500 block">LOP / Unpaid</span>
-                <span className="font-bold text-rose-600">{salary.lossOfPayDays}</span>
-              </div>
-              <div className="border-r border-slate-200 last:border-0 pr-1">
-                <span className="text-[10px] text-slate-500 block">Late Marks</span>
-                <span className="font-bold text-amber-700">{salary.attendance.lateArrivalsCount || 0}</span>
-              </div>
-              <div className="border-r border-slate-200 last:border-0 pr-1">
-                <span className="text-[10px] text-slate-500 block">Payable Days</span>
-                <span className="font-bold text-blue-700">{salary.payableDays}</span>
-              </div>
-              <div>
-                <span className="text-[10px] text-slate-500 block">O.T. Hrs</span>
-                <span className="font-bold text-purple-700">{salary.attendance.overtimeHours || 0}h</span>
+            {/* 3. Total Present Count Banner (Strictly Total Present Count Only) */}
+            <div className="bg-slate-50 rounded-md px-4 py-2.5 border border-slate-200 flex items-center justify-between text-xs">
+              <span className="font-semibold text-slate-700">Attendance:</span>
+              <div className="flex items-center space-x-2">
+                <span className="text-slate-500 font-medium">Total Present Count:</span>
+                <span className="bg-emerald-100 border border-emerald-300 text-emerald-800 font-extrabold px-3 py-0.5 rounded text-xs">
+                  {salary.attendance.daysPresent} Days
+                </span>
               </div>
             </div>
 
@@ -340,21 +280,29 @@ export const PaySlipModal: React.FC<PaySlipModalProps> = ({
                       <span className="font-semibold text-slate-900">{(salary.hra ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                     </div>
                     <div className="px-3.5 py-2 flex justify-between">
-                      <span className="text-slate-600 font-medium">Dearness Allowance</span>
+                      <span className="text-slate-600 font-medium">Dearness Allowance (D.A.)</span>
                       <span className="font-semibold text-slate-900">{(salary.dearnessAllowance ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                     </div>
                     <div className="px-3.5 py-2 flex justify-between">
                       <span className="text-slate-600 font-medium">Special Allowance</span>
                       <span className="font-semibold text-slate-900">{(salary.specialAllowance ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                     </div>
+                    {(salary.otherAllowance !== undefined && salary.otherAllowance > 0) && (
+                      <div className="px-3.5 py-2 flex justify-between">
+                        <span className="text-slate-600 font-medium">Other Allowance</span>
+                        <span className="font-semibold text-slate-900">{(salary.otherAllowance ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                      </div>
+                    )}
                     <div className="px-3.5 py-2 flex justify-between">
                       <span className="text-slate-600 font-medium">Overtime Pay (O.T.)</span>
                       <span className="font-semibold text-purple-700">+{(salary.overtimePay ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                     </div>
-                    <div className="px-3.5 py-2 flex justify-between">
-                      <span className="text-slate-600 font-medium">Incentive & Bonus</span>
-                      <span className="font-semibold text-emerald-700">+{((salary.performanceBonus || 0) + (salary.reimbursements || 0) + (salary.holidayWorkPay || 0)).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-                    </div>
+                    {((salary.performanceBonus || 0) + (salary.reimbursements || 0) + (salary.holidayWorkPay || 0)) > 0 && (
+                      <div className="px-3.5 py-2 flex justify-between">
+                        <span className="text-slate-600 font-medium">Incentive & Bonus</span>
+                        <span className="font-semibold text-emerald-700">+{((salary.performanceBonus || 0) + (salary.reimbursements || 0) + (salary.holidayWorkPay || 0)).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="px-3.5 py-2.5 bg-blue-50/70 font-bold flex justify-between text-blue-950 border-t border-blue-100">
@@ -371,32 +319,25 @@ export const PaySlipModal: React.FC<PaySlipModalProps> = ({
                     <span>AMOUNT ({sym})</span>
                   </div>
                   <div className="divide-y divide-slate-100 bg-white">
+                    {salary.providentFund > 0 && (
+                      <div className="px-3.5 py-2 flex justify-between">
+                        <span className="text-slate-600 font-medium">Provident Fund (PF)</span>
+                        <span className="font-semibold text-slate-900">{(salary.providentFund ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                      </div>
+                    )}
+                    {salary.professionalTax > 0 && (
+                      <div className="px-3.5 py-2 flex justify-between">
+                        <span className="text-slate-600 font-medium">Professional Tax (PT)</span>
+                        <span className="font-semibold text-slate-900">{(salary.professionalTax ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                      </div>
+                    )}
                     <div className="px-3.5 py-2 flex justify-between">
-                      <span className="text-slate-600 font-medium">Provident Fund (PF)</span>
-                      <span className="font-semibold text-slate-900">{(salary.providentFund ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                      <span className="text-slate-600 font-medium">Loan / Advance</span>
+                      <span className="font-semibold text-slate-900">{(salary.loanAdvance ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                     </div>
                     <div className="px-3.5 py-2 flex justify-between">
-                      <span className="text-slate-600 font-medium">Professional Tax (PT)</span>
-                      <span className="font-semibold text-slate-900">{(salary.professionalTax ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-                    </div>
-                    <div className="px-3.5 py-2 flex justify-between">
-                      <span className="text-slate-600 font-medium">
-                        Loss of Pay (LOP Deductions)
-                        {salary.lossOfPayDays > 0 && (
-                          <span className="text-[10px] text-rose-500 font-normal ml-1">
-                            ({salary.lossOfPayDays} {salary.lossOfPayDays === 1 ? 'day' : 'days'})
-                          </span>
-                        )}
-                      </span>
-                      <span className="font-semibold text-rose-600">{(salary.lossOfPayDeduction ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-                    </div>
-                    <div className="px-3.5 py-2 flex justify-between">
-                      <span className="text-slate-600 font-medium">Late Arrival Penalty</span>
-                      <span className="font-semibold text-rose-600">{(salary.lateDeduction ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-                    </div>
-                    <div className="px-3.5 py-2 flex justify-between">
-                      <span className="text-slate-600 font-medium">Loan & Salary Advances</span>
-                      <span className="font-semibold text-slate-900">{((salary.loanAdvance || 0) + (salary.otherDeductions || 0)).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                      <span className="text-slate-600 font-medium">Other Deductions</span>
+                      <span className="font-semibold text-slate-900">{(salary.otherDeductions ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                     </div>
                   </div>
                 </div>

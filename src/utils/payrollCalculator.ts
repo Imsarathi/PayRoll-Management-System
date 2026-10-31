@@ -118,20 +118,12 @@ export function calculateSalaryBreakdown(
     }
   }
 
-  // 2. Payable Days calculation
-  const halfDaysValue = (attendance.halfDays || 0) * 0.5;
-  const presentDays = attendance.daysPresent !== undefined ? attendance.daysPresent : totalMonthDays;
-  const paidLeaves = attendance.paidLeaves || 0;
-  const unpaidLeaves = attendance.unpaidLeaves || 0;
-  const holidaysWorked = attendance.holidaysWorked || 0;
+  // 2. Present Days: strictly keep total present count only (no LOP / half-days as per client format)
+  const presentDays = attendance.daysPresent !== undefined ? attendance.daysPresent : (attendance.totalMonthDays || 30);
+  const payableDays = presentDays;
+  const lossOfPayDays = 0;
 
-  // Actual payable days: days present + approved paid leaves + half-day fractions
-  const rawPayableDays = presentDays + paidLeaves + halfDaysValue;
-  // Bound strictly between 0 and totalMonthDays
-  const payableDays = Math.min(totalMonthDays, Math.max(0, rawPayableDays));
-  const lossOfPayDays = Math.max(0, totalMonthDays - payableDays);
-
-  const prorationFactor = totalMonthDays > 0 ? (payableDays / totalMonthDays) : 1;
+  const prorationFactor = 1;
 
   // 3. Base salary calculation according to structure
   let fullMonthlyBase = 0;
@@ -194,7 +186,7 @@ export function calculateSalaryBreakdown(
     overtimePay = Math.round((regularOtPay + holidayOtPay) * 100) / 100;
   }
 
-  const holidayWorkPay = holidaysWorked > 0 ? Math.round(holidaysWorked * dailyRate * 100) / 100 : 0;
+  const holidayWorkPay = 0;
   
   const performanceBonus = attendance.manualIncentiveBonus !== undefined
     ? Math.round(attendance.manualIncentiveBonus * 100) / 100
@@ -202,6 +194,10 @@ export function calculateSalaryBreakdown(
 
   const reimbursements = attendance.manualReimbursements !== undefined
     ? Math.round(attendance.manualReimbursements * 100) / 100
+    : 0;
+
+  const otherAllowance = attendance.manualOtherAllowance !== undefined
+    ? Math.round(attendance.manualOtherAllowance * 100) / 100
     : 0;
 
   const conveyanceAllowance = attendance.manualConveyance !== undefined
@@ -212,10 +208,13 @@ export function calculateSalaryBreakdown(
     ? Math.round(attendance.manualMedicalAllowance * 100) / 100
     : 0;
 
-  // Gross Earnings = Basic + HRA + Dearness Allowance + Special Allowance + Overtime Pay + Holiday Pay + Bonus + Reimbursements
-  const grossEarnings = Math.round(
-    (basicPay + hra + dearnessAllowance + specialAllowance + conveyanceAllowance + medicalAllowance + overtimePay + holidayWorkPay + performanceBonus + reimbursements) * 100
+  // Gross Earnings: if manualGross is explicitly provided from Excel (User Rule #2), strictly use it directly!
+  const calculatedGross = Math.round(
+    (basicPay + hra + dearnessAllowance + specialAllowance + otherAllowance + conveyanceAllowance + medicalAllowance + overtimePay + holidayWorkPay + performanceBonus + reimbursements) * 100
   ) / 100;
+  const grossEarnings = attendance.manualGross !== undefined
+    ? Math.round(attendance.manualGross * 100) / 100
+    : calculatedGross;
 
   // 5. Deductions Calculation
   // Provident Fund (PF) - zero by default unless enabled in settings / manual override
@@ -242,40 +241,35 @@ export function calculateSalaryBreakdown(
     professionalTax = (settings.ptSlabAmount || 0);
   }
 
-  // Loss of Pay (LOP Deductions) = Unpaid Leaves / LOP Days * Daily Rate
-  let lossOfPayDeduction = 0;
-  if (attendance.manualLopDeduction !== undefined) {
-    lossOfPayDeduction = Math.round(attendance.manualLopDeduction * 100) / 100;
-  } else {
-    lossOfPayDeduction = Math.round((lossOfPayDays * dailyRate) * 100) / 100;
-  }
+  // Loss of Pay (LOP) & Late penalties are strictly 0 as client sheet has no LOP / late columns
+  const lossOfPayDeduction = 0;
+  const lateDeduction = 0;
 
-  // Late Arrival Penalty: 1 late mark = half-day (0.5 day) salary deduction
-  let lateDeduction = 0;
-  if (attendance.manualLateDeduction !== undefined) {
-    lateDeduction = Math.round(attendance.manualLateDeduction * 100) / 100;
-  } else if (attendance.lateArrivalsCount && attendance.lateArrivalsCount > 0) {
-    lateDeduction = Math.round((attendance.lateArrivalsCount * 0.5 * dailyRate) * 100) / 100;
-  }
-
-  // Loan & Salary Advances
+  // Loan & Salary Advances (Col L)
   let loanAdvance = 0;
   if (attendance.manualLoanAdvance !== undefined) {
     loanAdvance = Math.round(attendance.manualLoanAdvance * 100) / 100;
   }
 
+  // Other Deductions (Col M)
   let otherDeductions = 0;
   if (attendance.manualOtherDeductions !== undefined) {
     otherDeductions = Math.round(attendance.manualOtherDeductions * 100) / 100;
   }
 
-  // Total Deductions = PF + PT + LOP Deductions + Late Penalty + Loan Advance + Other Deductions
-  const totalDeductions = Math.round(
-    (providentFund + professionalTax + lossOfPayDeduction + lateDeduction + loanAdvance + otherDeductions) * 100
+  // Total Deductions: if manualTotalDeductions is explicitly provided from Excel (User Rule #2), strictly use it directly!
+  const calculatedDeductions = Math.round(
+    (providentFund + professionalTax + loanAdvance + otherDeductions) * 100
   ) / 100;
+  const totalDeductions = attendance.manualTotalDeductions !== undefined
+    ? Math.round(attendance.manualTotalDeductions * 100) / 100
+    : calculatedDeductions;
 
-  // 6. Net Pay = Total Gross Earnings - Total Deductions
-  const netPay = Math.max(0, Math.round((grossEarnings - totalDeductions) * 100) / 100);
+  // 6. Net Pay: if manualNetPay is explicitly provided from Excel (User Rule #2), strictly use it directly!
+  const calculatedNetPay = Math.max(0, Math.round((grossEarnings - totalDeductions) * 100) / 100);
+  const netPay = attendance.manualNetPay !== undefined
+    ? Math.round(attendance.manualNetPay * 100) / 100
+    : calculatedNetPay;
   const netPayInWords = numberToWords(netPay, settings.currency === 'USD' ? 'Dollars' : 'Rupees', 'Cents');
 
   return {
@@ -294,6 +288,7 @@ export function calculateSalaryBreakdown(
     conveyanceAllowance,
     medicalAllowance,
     specialAllowance,
+    otherAllowance,
     overtimePay,
     holidayWorkPay,
     performanceBonus,

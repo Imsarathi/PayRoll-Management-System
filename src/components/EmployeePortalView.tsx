@@ -290,29 +290,23 @@ export const EmployeePortalView: React.FC<EmployeePortalViewProps> = ({
 
             <div className="space-y-2 mt-3 text-xs">
               <div className="flex justify-between py-1 border-b border-slate-50">
-                <span className="text-slate-600">Provident Fund (PF)</span>
-                <span className="font-semibold text-slate-900">{sym} {providentFund.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                <span className="text-slate-600">Loan / Advance</span>
+                <span className="font-semibold text-slate-900">{sym} {(activeSalary.loanAdvance || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
               </div>
               <div className="flex justify-between py-1 border-b border-slate-50">
-                <span className="text-slate-600">Professional Tax (PT)</span>
-                <span className="font-semibold text-slate-900">{sym} {professionalTax.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                <span className="text-slate-600">Other Deductions</span>
+                <span className="font-semibold text-slate-900">{sym} {(activeSalary.otherDeductions || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
               </div>
-              {lossOfPayDeduction > 0 && (
+              {providentFund > 0 && (
                 <div className="flex justify-between py-1 border-b border-slate-50">
-                  <span className="text-slate-600">Loss of Pay ({activeSalary.lossOfPayDays || 0} days)</span>
-                  <span className="font-semibold text-rose-600">-{sym} {lossOfPayDeduction.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                  <span className="text-slate-600">Provident Fund (PF)</span>
+                  <span className="font-semibold text-slate-900">{sym} {providentFund.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                 </div>
               )}
-              {lateDeduction > 0 && (
+              {professionalTax > 0 && (
                 <div className="flex justify-between py-1 border-b border-slate-50">
-                  <span className="text-slate-600">Late Penalty</span>
-                  <span className="font-semibold text-rose-600">-{sym} {lateDeduction.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-                </div>
-              )}
-              {otherDeductions > 0 && (
-                <div className="flex justify-between py-1 border-b border-slate-50">
-                  <span className="text-slate-600">Loan & Salary Advances</span>
-                  <span className="font-semibold text-slate-900">-{sym} {otherDeductions.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                  <span className="text-slate-600">Professional Tax (PT)</span>
+                  <span className="font-semibold text-slate-900">{sym} {professionalTax.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                 </div>
               )}
             </div>
@@ -328,32 +322,24 @@ export const EmployeePortalView: React.FC<EmployeePortalViewProps> = ({
         <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between text-xs text-slate-500 font-medium pb-2 border-b border-slate-100">
-              <span className="font-bold text-slate-800 uppercase tracking-wider">Attendance & Payout</span>
-              <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 font-bold text-[10px]">
-                {activeSalary.payableDays ?? 0} / {activeSalary.totalDays ?? 30} Days Payable
+              <span className="font-bold text-slate-800 uppercase tracking-wider">Attendance Record</span>
+              <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">
+                {att.daysPresent || 30} Days Present
               </span>
             </div>
 
             <div className="space-y-2 mt-3 text-xs">
               <div className="flex justify-between py-1 border-b border-slate-50">
-                <span className="text-slate-600">Days Present</span>
-                <span className="font-bold text-slate-800">{att.daysPresent || 0} days</span>
+                <span className="text-slate-600">Total Present Days</span>
+                <span className="font-extrabold text-emerald-700">{att.daysPresent || 30} days</span>
               </div>
               <div className="flex justify-between py-1 border-b border-slate-50">
-                <span className="text-slate-600">Paid Leaves</span>
-                <span className="font-bold text-slate-800">{att.paidLeaves || 0} days</span>
+                <span className="text-slate-600">Monthly Base Salary</span>
+                <span className="font-semibold text-slate-900">{sym} {(profile.baseSalary || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
               </div>
               <div className="flex justify-between py-1 border-b border-slate-50">
-                <span className="text-slate-600">O.T. Hrs</span>
-                <span className="font-bold text-purple-700">+{att.overtimeHours || 0} hrs</span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-slate-50">
-                <span className="text-slate-600">Loss of Pay (Unpaid)</span>
-                <span className="font-bold text-rose-600">{activeSalary.lossOfPayDays || 0} days</span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-slate-50">
-                <span className="text-slate-600">Late Arrivals</span>
-                <span className="font-semibold text-slate-700">{att.lateArrivalsCount || 0} times</span>
+                <span className="text-slate-600">Net Take-Home Pay</span>
+                <span className="font-bold text-blue-700">{sym} {netPay.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
               </div>
             </div>
           </div>

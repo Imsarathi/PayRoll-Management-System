@@ -89,16 +89,20 @@ export interface AttendanceRecord {
   manualConveyance?: number;
   manualDa?: number; // Dearness Allowance
   manualSpecialAllowance?: number;
+  manualOtherAllowance?: number; // Other Allowance
   manualMedicalAllowance?: number;
   manualOvertimePay?: number;
   manualIncentiveBonus?: number;
   manualReimbursements?: number;
+  manualGross?: number; // Direct Gross Salary from Excel
   manualPf?: number; // Provident Fund deduction override
   manualPt?: number; // Professional Tax deduction override
   manualLopDeduction?: number; // Loss of Pay deduction override
   manualLateDeduction?: number; // Late arrival penalty override
   manualLoanAdvance?: number; // Loan / Salary Advance deduction override
   manualOtherDeductions?: number;
+  manualTotalDeductions?: number; // Direct Total Deductions from Excel
+  manualNetPay?: number; // Direct Net Pay from Excel
 }
 
 export interface SalaryBreakdown {
@@ -121,6 +125,7 @@ export interface SalaryBreakdown {
   conveyanceAllowance: number;
   medicalAllowance: number;
   specialAllowance: number;
+  otherAllowance: number; // Other Allowance
   overtimePay: number;
   holidayWorkPay: number;
   performanceBonus: number;
@@ -176,10 +181,12 @@ export interface ColumnMapping {
   conveyance?: string;
   da?: string; // Dearness Allowance
   specialAllowance?: string;
+  otherAllowance?: string; // Other Allowance
   medicalAllowance?: string;
   overtimePay?: string;
   incentiveBonus?: string;
   reimbursements?: string;
+  grossSalary?: string; // Gross Salary
 
   // Deductions columns
   providentFund?: string; // PF
@@ -188,6 +195,8 @@ export interface ColumnMapping {
   lateDeduction?: string; // Late penalty amount
   loanAdvance?: string; // Loan / Salary Advance
   otherDeductions?: string;
+  totalDeductions?: string; // Total Deductions
+  netPay?: string; // Net Pay
 }
 
 export interface AuditLog {

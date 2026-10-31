@@ -344,22 +344,11 @@ export const PayrollGrid: React.FC<PayrollGridProps> = ({
                       <div className="text-[11px] text-slate-500 truncate max-w-[140px]">{s.profile.designation}</div>
                     </td>
 
-                    {/* Attendance stats */}
+                    {/* Attendance stats: strictly Total Present Days count only */}
                     <td className="p-3 text-center">
-                      <div className="font-semibold text-slate-800">
-                        {s.payableDays} / {s.totalDays} <span className="text-[10px] text-slate-400 font-normal">days</span>
-                      </div>
-                      <div className="text-[10px] text-slate-500 flex items-center justify-center space-x-1 mt-0.5">
-                        {s.attendance.overtimeHours > 0 && (
-                          <span className="text-purple-600 font-semibold">{s.attendance.overtimeHours}h OT</span>
-                        )}
-                        {s.lossOfPayDays > 0 && (
-                          <span className="text-rose-600 font-semibold">{s.lossOfPayDays}d LOP</span>
-                        )}
-                        {s.attendance.lateArrivalsCount > 0 && (
-                          <span className="text-amber-600">{s.attendance.lateArrivalsCount} Late</span>
-                        )}
-                      </div>
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-800 font-bold text-xs border border-emerald-200">
+                        {s.attendance.daysPresent} Days Present
+                      </span>
                     </td>
 
                     {/* Payment Mode (Bank Transfer vs Cash vs UPI vs Cheque) */}

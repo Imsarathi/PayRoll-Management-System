@@ -173,12 +173,17 @@ export default function App() {
     localStorage.setItem('paymaster_settings', JSON.stringify(newSettings));
   };
 
-  const handleApplyAttendance = (newRecords: AttendanceRecord[]) => {
-    // 1. Update attendance records
+  const handleApplyAttendance = (newRecords: AttendanceRecord[], detectedPeriod?: { month: string; periodLabel: string }) => {
+    // 1. Update pay period if detected from spreadsheet header banner (e.g. June 2026)
+    if (detectedPeriod && detectedPeriod.month) {
+      setSelectedMonth(detectedPeriod.month);
+    }
+
+    // 2. Update attendance records
     setAttendanceRecords(newRecords);
     localStorage.setItem('paymaster_attendance', JSON.stringify(newRecords));
 
-    // 2. Auto-sync employees: if any employee in Excel does not exist, auto-create their profile
+    // 3. Auto-sync employees: if any employee in Excel does not exist, auto-create their profile
     setEmployees(prevEmployees => {
       const updatedEmployees = [...prevEmployees];
       let newCount = 0;
@@ -197,25 +202,36 @@ export default function App() {
           if (rec.employeeName && rec.employeeName !== existing.name) {
             updatedEmp.name = rec.employeeName;
           }
-          if (rec.department && rec.department !== existing.department) {
+          // User rule 3: only update department if provided and non-empty, otherwise retain or let client edit
+          if (rec.department && rec.department !== '-' && rec.department !== existing.department) {
             updatedEmp.department = rec.department;
           }
           if (rec.baseSalary && rec.baseSalary > 0) {
             updatedEmp.baseSalary = rec.baseSalary;
+          } else if (rec.manualGross && rec.manualGross > 0) {
+            updatedEmp.baseSalary = rec.manualGross;
           }
           updatedEmployees[existingIdx] = updatedEmp;
         } else {
           newCount++;
+          const resolvedSalary = rec.baseSalary && rec.baseSalary > 0 
+            ? rec.baseSalary 
+            : (rec.manualGross && rec.manualGross > 0 
+              ? rec.manualGross 
+              : (rec.manualBasicPay && rec.manualBasicPay > 0 
+                ? rec.manualBasicPay * 2 
+                : 10000));
+
           const newEmp: EmployeeProfile = {
             id: `emp-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
             empId: rec.empId,
             name: rec.employeeName || `Employee ${rec.empId}`,
             email: `${(rec.employeeName || rec.empId).toLowerCase().replace(/[^a-z0-9]/g, '.')}@company.com`,
-            department: rec.department || 'Operations',
+            department: (rec.department && rec.department.trim() !== '') ? rec.department : '-',
             designation: 'Staff Member',
             joinDate: new Date().toISOString().split('T')[0],
             structureType: 'fixed',
-            baseSalary: rec.baseSalary && rec.baseSalary > 0 ? rec.baseSalary : 5000,
+            baseSalary: resolvedSalary,
             hourlyRate: 35,
             bankName: 'Corporate Bank',
             accountNumber: `482910${Math.floor(1000 + Math.random() * 9000)}`,
